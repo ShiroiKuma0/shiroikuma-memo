@@ -1,6 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_launcher_name">白い熊 メモ</string>
+
+    <!-- 白い熊 メモ UI (granular theme & fonts) -->
+    <string name="shiroikuma_ui_category">白い熊 メモ UI</string>
+    <string name="theme_section_foundation">Foundation</string>
+    <string name="theme_section_content">Notes</string>
+    <string name="theme_group_text_note">Text note</string>
+    <string name="theme_group_checklist">Checklist</string>
+    <string name="theme_group_tabs">Tabs</string>
+    <string name="theme_background">Background</string>
+    <string name="theme_primary">Primary / accent</string>
+    <string name="theme_text">Text</string>
+    <string name="theme_text_secondary">Secondary text</string>
+    <string name="theme_note_text">Note text</string>
+    <string name="theme_note_counter">Counter</string>
+    <string name="theme_checklist_text">Item text</string>
+    <string name="theme_checklist_done">Done item</string>
+    <string name="theme_checklist_checkbox">Checkbox</string>
+    <string name="theme_tab_text">Tab title</string>
+    <string name="theme_font">Font</string>
+    <string name="theme_weight">Weight</string>
+    <string name="theme_size">Size</string>
+    <string name="theme_size_default">Default</string>
+    <string name="theme_alpha">Alpha</string>
+    <string name="theme_add_font">Add font…</string>
+    <string name="font_system_default">System default</string>
+    <string name="font_monospace">Monospace</string>
+    <string name="font_invalid">Please pick a .ttf or .otf font file</string>
+    <string name="font_sample_text">AaIiMmOoQqWw 012 白い熊相撲道 áÁčČďĎéÉěĚíÍňŇóÓřŘšŠťŤúÚůŮýÝžŽ</string>
+    <string name="font_weight_default">Default</string>
+    <string name="font_weight_thin">Thin (100)</string>
+    <string name="font_weight_light">Light (300)</string>
+    <string name="font_weight_regular">Regular (400)</string>
+    <string name="font_weight_medium">Medium (500)</string>
+    <string name="font_weight_semibold">SemiBold (600)</string>
+    <string name="font_weight_bold">Bold (700)</string>
+    <string name="font_weight_black">Black (900)</string>
     <string name="widget_config">Thank you for using Fossify Notes.\nFor more apps from Fossify, please visit fossify.org.</string>
     <string name="cannot_share_empty_text">Cannot share empty text</string>
     <string name="new_note">Add a new note</string>

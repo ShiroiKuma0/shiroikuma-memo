@@ -13,6 +13,17 @@ const val CUSTOMIZED_WIDGET_BG_COLOR = "customized_widget_bg_color"
 const val CUSTOMIZED_WIDGET_TEXT_COLOR = "customized_widget_text_color"
 const val CUSTOMIZED_WIDGET_SHOW_TITLE = "customized_widget_show_title"
 const val ALL_WIDGET_IDS = "all_widget_ids"
+
+// 白い熊 メモ UI — granular theming + per-element fonts
+const val THEME_V1_SEEDED = "theme_v1_seeded"
+const val THEME_UNSET = Int.MIN_VALUE // a slot with this stored value follows its inherited default
+const val PALETTE_BLACK = 0xFF000000.toInt()
+const val PALETTE_YELLOW = 0xFFFFEB3B.toInt()
+const val FONT_FAMILY_PREFIX = "font_family_" // String, "" = system/global default
+const val FONT_WEIGHT_PREFIX = "font_weight_" // Int, 0 = default, else 100..900
+const val FONT_SIZE_PREFIX = "font_size_"     // Int sp, 0 = default
+const val MAX_FONT_SIZE_SP = 40
+
 const val SHORTCUT_NEW_TEXT_NOTE = "shortcut_new_text_note"
 const val SHORTCUT_NEW_CHECKLIST = "shortcut_new_checklist"
 const val NEW_TEXT_NOTE = "new_text_note"

@@ -105,7 +105,11 @@ import org.fossify.notes.dialogs.OpenNoteDialog
 import org.fossify.notes.dialogs.RenameNoteDialog
 import org.fossify.notes.dialogs.SortChecklistDialog
 import org.fossify.notes.extensions.checklistToPlainText
+import androidx.core.view.children
+import org.fossify.notes.extensions.ThemeSlot
+import org.fossify.notes.extensions.applyThemeFontIfSet
 import org.fossify.notes.extensions.config
+import org.fossify.notes.extensions.themeColor
 import org.fossify.notes.extensions.getPercentageFontSize
 import org.fossify.notes.extensions.notesDB
 import org.fossify.notes.extensions.parseChecklistItems
@@ -218,9 +222,11 @@ class MainActivity : SimpleActivity() {
                 (textSize + resources.getDimension(org.fossify.commons.R.dimen.medium_margin) * 2).toInt()
             setGravity(Gravity.CENTER_VERTICAL)
             setNonPrimaryAlpha(0.4f)
-            setTextColor(getProperPrimaryColor())
+            setTextColor(themeColor(ThemeSlot.TAB_TEXT))
             tabIndicatorColor = getProperPrimaryColor()
             applyFontToViewRecursively(this)
+            // 白い熊 メモ UI: per-element font override for the tab titles.
+            children.filterIsInstance<TextView>().forEach { it.applyThemeFontIfSet(ThemeSlot.TAB_TEXT) }
         }
         updateTextColors(binding.viewPager)
 
