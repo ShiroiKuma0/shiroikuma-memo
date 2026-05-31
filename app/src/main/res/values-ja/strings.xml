@@ -5,6 +5,7 @@
     <!-- 白い熊 メモ UI (granular theme & fonts) -->
     <string name="shiroikuma_ui_category">白い熊 メモ UI</string>
     <string name="theme_section_foundation">基本</string>
+    <string name="theme_section_topbar">上部バー</string>
     <string name="theme_section_content">メモ</string>
     <string name="theme_group_text_note">テキストメモ</string>
     <string name="theme_group_checklist">チェックリスト</string>
@@ -13,6 +14,12 @@
     <string name="theme_primary">プライマリ / アクセント</string>
     <string name="theme_text">文字</string>
     <string name="theme_text_secondary">補助的な文字</string>
+    <string name="theme_group_main_bar">メイン画面</string>
+    <string name="theme_group_sub_header">サブページ</string>
+    <string name="theme_menu_icon">メニューアイコン</string>
+    <string name="theme_menu_text">メニューの文字</string>
+    <string name="theme_header_title">タイトル</string>
+    <string name="theme_header_arrow">戻る矢印</string>
     <string name="theme_note_text">メモの文字</string>
     <string name="theme_note_counter">文字数カウンター</string>
     <string name="theme_checklist_text">項目の文字</string>

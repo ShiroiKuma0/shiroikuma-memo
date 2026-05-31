@@ -3,6 +3,7 @@ package org.fossify.notes.extensions
 import android.content.Context
 import androidx.annotation.StringRes
 import org.fossify.commons.extensions.adjustAlpha
+import org.fossify.commons.extensions.getContrastColor
 import org.fossify.commons.extensions.getProperBackgroundColor
 import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.extensions.getProperTextColor
@@ -24,6 +25,7 @@ private const val SECONDARY_TEXT_ALPHA = 0.6f
 // Top-level sections shown on the 白い熊 メモ UI page (accent header + divider).
 enum class ThemeSection(@StringRes val labelRes: Int) {
     FOUNDATION(R.string.theme_section_foundation),
+    CHROME(R.string.theme_section_topbar),
     CONTENT(R.string.theme_section_content),
 }
 
@@ -31,6 +33,8 @@ enum class ThemeSection(@StringRes val labelRes: Int) {
 // group; single-group sections render their rows directly under the section header.
 enum class ThemeGroup(val section: ThemeSection, @StringRes val labelRes: Int) {
     FOUNDATION(ThemeSection.FOUNDATION, R.string.theme_section_foundation),
+    MAIN_BAR(ThemeSection.CHROME, R.string.theme_group_main_bar),
+    SUB_HEADER(ThemeSection.CHROME, R.string.theme_group_sub_header),
     TEXT_NOTE(ThemeSection.CONTENT, R.string.theme_group_text_note),
     CHECKLIST(ThemeSection.CONTENT, R.string.theme_group_checklist),
     TABS(ThemeSection.CONTENT, R.string.theme_group_tabs),
@@ -49,6 +53,14 @@ enum class ThemeSlot(
     PRIMARY("theme_primary", ThemeGroup.FOUNDATION, R.string.theme_primary, isFoundation = true),
     TEXT("theme_text", ThemeGroup.FOUNDATION, R.string.theme_text, isFoundation = true),
     TEXT_SECONDARY("theme_text_secondary", ThemeGroup.FOUNDATION, R.string.theme_text_secondary),
+
+    // Top bar & menu — main screen: the top-right action/overflow icons and the overflow ("hamburger") item text
+    MENU_ICON("theme_menu_icon", ThemeGroup.MAIN_BAR, R.string.theme_menu_icon),
+    MENU_TEXT("theme_menu_text", ThemeGroup.MAIN_BAR, R.string.theme_menu_text),
+
+    // Top bar & menu — sub-pages: the toolbar title + back arrow shown on Settings and every sub-page
+    HEADER_TITLE("theme_header_title", ThemeGroup.SUB_HEADER, R.string.theme_header_title, hasFont = true),
+    HEADER_ARROW("theme_header_arrow", ThemeGroup.SUB_HEADER, R.string.theme_header_arrow),
 
     // Text note
     NOTE_TEXT("theme_note_text", ThemeGroup.TEXT_NOTE, R.string.theme_note_text, hasFont = true),
@@ -70,12 +82,21 @@ fun Context.themeColor(slot: ThemeSlot): Int {
 }
 
 // One readable mapping of every slot to its inherited default; the long `when` is intentional.
+@Suppress("CyclomaticComplexMethod") // one branch per slot — the exhaustive when is the point
 private fun Context.themeDefault(slot: ThemeSlot): Int = when (slot) {
     // Foundation reads the stock commons colors (seeded to black/yellow on first run)
     ThemeSlot.BACKGROUND -> getProperBackgroundColor()
     ThemeSlot.PRIMARY -> getProperPrimaryColor()
     ThemeSlot.TEXT -> getProperTextColor()
     ThemeSlot.TEXT_SECONDARY -> themeColor(ThemeSlot.TEXT).adjustAlpha(SECONDARY_TEXT_ALPHA)
+
+    // Top bar & menu — main screen: icons follow the accent, overflow text follows the body text
+    ThemeSlot.MENU_ICON -> themeColor(ThemeSlot.PRIMARY)
+    ThemeSlot.MENU_TEXT -> themeColor(ThemeSlot.TEXT)
+
+    // Sub-pages: contrast the bar (which commons paints in the background color), matching its own default
+    ThemeSlot.HEADER_TITLE -> themeColor(ThemeSlot.BACKGROUND).getContrastColor()
+    ThemeSlot.HEADER_ARROW -> themeColor(ThemeSlot.BACKGROUND).getContrastColor()
 
     // Text note
     ThemeSlot.NOTE_TEXT -> themeColor(ThemeSlot.TEXT)

@@ -1,9 +1,16 @@
 ---
 name: build-apk
-description: Build the signed foss release APK with the buildFoss Gradle task, then always ask whether to push it to the connected phone via adb. Use whenever the user asks to build the app, build the APK, make a release build, or build and push to the phone.
+description: Build the signed foss release APK with the buildFoss Gradle task, then always ask whether to push it to the connected phone via adb. Always build first without asking for permission to build — the ONLY question you ever ask is the adb-push question afterward. Use whenever the user asks to build the app, build the APK, make a release build, or build and push to the phone.
 ---
 
 # Build the foss release APK and optionally push to phone
+
+> **Never ask whether to build — just build.** When this skill applies (the user
+> asked to build, or you've made changes that are ready to test), run the build
+> immediately. Do **not** ask "shall I build?" / "want me to run buildFoss?" — that
+> question is wrong. The **only** question in this whole flow is the `AskUserQuestion`
+> about the `adb push`, asked **after** a successful build. So: always build, *then*
+> ask about the push.
 
 > **The push destination is ALWAYS `/sdcard/tmp/`.** Every `adb push` of the APK
 > goes to `/sdcard/tmp/<apk name>` — **never** `/sdcard/Download/` or anywhere
