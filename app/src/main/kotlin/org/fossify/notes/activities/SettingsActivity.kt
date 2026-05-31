@@ -88,6 +88,7 @@ class SettingsActivity : SimpleActivity() {
         super.onResume()
         setupTopAppBar(binding.settingsAppbar, NavigationIcon.Arrow)
 
+        setupShiroikumaUi()
         setupCustomizeColors()
         setupUseEnglish()
         setupLanguage()
@@ -153,6 +154,12 @@ class SettingsActivity : SimpleActivity() {
                 }
             }
         }
+
+    private fun setupShiroikumaUi() {
+        binding.settingsShiroikumaUiHolder.setOnClickListener {
+            startActivity(Intent(this, ThemeActivity::class.java))
+        }
+    }
 
     private fun setupCustomizeColors() {
         binding.settingsColorCustomizationHolder.setOnClickListener {

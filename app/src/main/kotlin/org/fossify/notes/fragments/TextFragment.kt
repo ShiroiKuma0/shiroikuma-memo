@@ -28,8 +28,11 @@ import org.fossify.notes.activities.MainActivity
 import org.fossify.notes.databinding.FragmentTextBinding
 import org.fossify.notes.databinding.NoteViewHorizScrollableBinding
 import org.fossify.notes.databinding.NoteViewStaticBinding
+import org.fossify.notes.extensions.ThemeSlot
+import org.fossify.notes.extensions.applyThemeFontIfSet
 import org.fossify.notes.extensions.config
 import org.fossify.notes.extensions.enforcePlainText
+import org.fossify.notes.extensions.themeColor
 import org.fossify.notes.extensions.getPercentageFontSize
 import org.fossify.notes.extensions.maybeRequestIncognito
 import org.fossify.notes.extensions.updateWidgets
@@ -154,8 +157,10 @@ class TextFragment : NoteFragment() {
             }
 
             val adjustedPrimaryColor = context.getProperPrimaryColor()
-            setColors(context.getProperTextColor(), adjustedPrimaryColor, context.getProperBackgroundColor())
+            setColors(context.themeColor(ThemeSlot.NOTE_TEXT), adjustedPrimaryColor, context.getProperBackgroundColor())
             setTextSize(TypedValue.COMPLEX_UNIT_PX, context.getPercentageFontSize())
+            // 白い熊 メモ UI: per-element font override (family / weight / size) on top of the global font.
+            applyThemeFontIfSet(ThemeSlot.NOTE_TEXT)
             highlightColor = adjustedPrimaryColor.adjustAlpha(.4f)
 
             gravity = config.getTextGravity()
@@ -195,7 +200,7 @@ class TextFragment : NoteFragment() {
         }
 
         if (config.showWordCount) {
-            binding.notesCounter.setTextColor(requireContext().getProperTextColor())
+            binding.notesCounter.setTextColor(requireContext().themeColor(ThemeSlot.NOTE_COUNTER))
             setWordCounter(noteEditText.text.toString())
         }
 

@@ -90,6 +90,13 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".activities.ThemeActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:label="@string/shiroikuma_ui_category"
+            android:parentActivityName=".activities.SettingsActivity" />
+
         <service
             android:name=".services.WidgetService"
             android:exported="true"

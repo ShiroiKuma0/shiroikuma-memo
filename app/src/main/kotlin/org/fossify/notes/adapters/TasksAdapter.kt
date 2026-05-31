@@ -1,6 +1,7 @@
 package org.fossify.notes.adapters
 
 import android.annotation.SuppressLint
+import android.content.res.ColorStateList
 import android.graphics.Paint
 import android.util.TypedValue
 import android.view.Menu
@@ -23,8 +24,11 @@ import org.fossify.commons.views.MyRecyclerView
 import org.fossify.notes.R
 import org.fossify.notes.databinding.ItemCheckedTasksBinding
 import org.fossify.notes.databinding.ItemChecklistBinding
+import org.fossify.notes.extensions.ThemeSlot
+import org.fossify.notes.extensions.applyThemeFontIfSet
 import org.fossify.notes.extensions.config
 import org.fossify.notes.extensions.getPercentageFontSize
+import org.fossify.notes.extensions.themeColor
 import org.fossify.notes.helpers.DONE_CHECKLIST_ITEM_ALPHA
 import org.fossify.notes.interfaces.TasksActionListener
 import org.fossify.notes.models.CompletedTasks
@@ -160,8 +164,15 @@ class TasksAdapter(
         ItemChecklistBinding.bind(view).apply {
             checklistTitle.apply {
                 text = task.title
-                setTextColor(textColor)
+                setTextColor(
+                    if (task.isDone) {
+                        context.themeColor(ThemeSlot.CHECKLIST_DONE)
+                    } else {
+                        context.themeColor(ThemeSlot.CHECKLIST_TEXT)
+                    }
+                )
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, context.getPercentageFontSize())
+                applyThemeFontIfSet(ThemeSlot.CHECKLIST_TEXT)
                 gravity = context.config.getTextGravity()
 
                 if (task.isDone) {
@@ -174,6 +185,8 @@ class TasksAdapter(
             }
 
             checklistCheckbox.isChecked = task.isDone
+            checklistCheckbox.buttonTintList =
+                ColorStateList.valueOf(checklistCheckbox.context.themeColor(ThemeSlot.CHECKLIST_CHECKBOX))
             checklistHolder.isSelected = isSelected
 
             val canMoveTask = !task.isDone || !activity.config.moveDoneChecklistItems

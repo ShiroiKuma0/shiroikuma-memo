@@ -1,6 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_launcher_name">白い熊 メモ</string>
+
+    <!-- 白い熊 メモ UI (granular theme & fonts) -->
+    <string name="shiroikuma_ui_category">白い熊 メモ UI</string>
+    <string name="theme_section_foundation">基本</string>
+    <string name="theme_section_content">メモ</string>
+    <string name="theme_group_text_note">テキストメモ</string>
+    <string name="theme_group_checklist">チェックリスト</string>
+    <string name="theme_group_tabs">タブ</string>
+    <string name="theme_background">背景</string>
+    <string name="theme_primary">プライマリ / アクセント</string>
+    <string name="theme_text">文字</string>
+    <string name="theme_text_secondary">補助的な文字</string>
+    <string name="theme_note_text">メモの文字</string>
+    <string name="theme_note_counter">文字数カウンター</string>
+    <string name="theme_checklist_text">項目の文字</string>
+    <string name="theme_checklist_done">完了した項目</string>
+    <string name="theme_checklist_checkbox">チェックボックス</string>
+    <string name="theme_tab_text">タブの見出し</string>
+    <string name="theme_font">フォント</string>
+    <string name="theme_weight">太さ</string>
+    <string name="theme_size">サイズ</string>
+    <string name="theme_size_default">既定</string>
+    <string name="theme_alpha">アルファ</string>
+    <string name="theme_add_font">フォントを追加…</string>
+    <string name="font_system_default">システム標準</string>
+    <string name="font_monospace">等幅</string>
+    <string name="font_invalid">.ttf または .otf フォントファイルを選択してください</string>
+    <string name="font_sample_text">AaIiMmOoQqWw 012 白い熊相撲道 áÁčČďĎéÉěĚíÍňŇóÓřŘšŠťŤúÚůŮýÝžŽ</string>
+    <string name="font_weight_default">既定</string>
+    <string name="font_weight_thin">極細 (100)</string>
+    <string name="font_weight_light">細字 (300)</string>
+    <string name="font_weight_regular">標準 (400)</string>
+    <string name="font_weight_medium">中字 (500)</string>
+    <string name="font_weight_semibold">半太字 (600)</string>
+    <string name="font_weight_bold">太字 (700)</string>
+    <string name="font_weight_black">極太 (900)</string>
     <string name="cannot_share_empty_text">空のテキストは共有できません</string>
     <string name="new_note">新しいメモを追加</string>
     <string name="no_title">メモに名前をつけてください</string>

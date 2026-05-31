@@ -21,6 +21,13 @@ description: Build the signed foss release APK with the buildFoss Gradle task, t
 > means *commit-and-push-to-the-fork* — it is unrelated to the `adb push` file
 > copy in step 4.
 
+> **ALWAYS end every build by asking — via `AskUserQuestion` — whether to
+> `adb push` the APK to `/sdcard/tmp/`.** This is mandatory and applies to
+> *every* successful build, even verification builds and even when the user
+> didn't mention pushing. Do **not** settle for asking in prose ("say the word")
+> or assuming the answer — fire the `AskUserQuestion` prompt as the final step
+> (step 3) of the build, every time.
+
 ## Steps
 
 1. **Note the output filename.** Read the current version and build number:
@@ -34,7 +41,7 @@ description: Build the signed foss release APK with the buildFoss Gradle task, t
    - This runs `assembleFossRelease`, copies the signed APK to `~/tmp/<apk name>`, and auto-increments `BUILD_NUMBER` in `gradle.properties`.
    - The task prints `>>> <path>` and `>>> versionCode <n>`; use those to confirm the exact filename and code, and confirm `BUILD SUCCESSFUL`.
 
-3. **Always ask** (via AskUserQuestion) whether to push the APK to the phone — every build, no assuming. Options: "Yes, push via adb" / "No, just build".
+3. **At the end of every build, ALWAYS ask** via `AskUserQuestion` whether to push the APK to the phone — no exceptions, no assuming, no asking only in prose. Options: "Yes, push via adb" / "No, just build". Fire this prompt as soon as the build reports `BUILD SUCCESSFUL`, regardless of whether the user mentioned pushing.
 
 4. **If yes, push directly yourself:**
    - `adb devices` — confirm a device is connected.

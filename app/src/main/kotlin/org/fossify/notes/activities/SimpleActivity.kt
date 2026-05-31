@@ -1,9 +1,31 @@
 package org.fossify.notes.activities
 
+import android.os.Bundle
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.notes.R
 
 open class SimpleActivity : BaseSimpleActivity() {
+    // Fossify Commons' BaseSimpleActivity.onCreate shows a hardcoded "You are using a fake version…"
+    // dialog (showModdedAppWarning) whenever packageName does not start with "org.fossify.". Our installed
+    // id is shiroikuma.memo, so it would fire — guaranteed on first launch (appRunCount 0 % 100 == 0) and
+    // then ~2% per screen open via its random() branch. The check ignores appSideloadingStatus, so it
+    // can't be suppressed by the usual flag. It reads packageName exactly once, at the end of onCreate,
+    // so we return an "org.fossify."-prefixed id for just that window; every other caller (shortcuts,
+    // PackageManager, FileProvider authority, …) still sees the real shiroikuma.memo id.
+    private var spoofPackageForModCheck = false
+
+    override fun getPackageName(): String =
+        if (spoofPackageForModCheck) "org.fossify.notes" else super.getPackageName()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        spoofPackageForModCheck = true
+        try {
+            super.onCreate(savedInstanceState)
+        } finally {
+            spoofPackageForModCheck = false
+        }
+    }
+
     override fun getAppIconIDs() = arrayListOf(
         R.mipmap.ic_launcher_red,
         R.mipmap.ic_launcher_pink,
