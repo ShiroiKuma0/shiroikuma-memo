@@ -17,8 +17,11 @@ import android.net.Uri
 import android.os.Bundle
 import android.print.PrintAttributes
 import android.print.PrintManager
+import android.text.Spannable
+import android.text.SpannableString
 import android.text.method.ArrowKeyMovementMethod
 import android.text.method.LinkMovementMethod
+import android.text.style.ForegroundColorSpan
 import android.util.TypedValue
 import android.view.ActionMode
 import android.view.Gravity
@@ -239,6 +242,8 @@ class MainActivity : SimpleActivity() {
         }
 
         updateTopBarColors(binding.mainAppbar, getProperBackgroundColor())
+        // updateTopBarColors repaints the overflow icon, so re-tint the menu from our slots afterwards.
+        styleTopBarMenu()
     }
 
     override fun onPause() {
@@ -290,6 +295,27 @@ class MainActivity : SimpleActivity() {
         }
 
         binding.pagerTabStrip.beVisibleIf(multipleNotesExist)
+        styleTopBarMenu()
+    }
+
+    // 白い熊 メモ UI: tint the top-right action + overflow ("hamburger") icons from MENU_ICON, and
+    // color the overflow menu items' text from MENU_TEXT. Re-applied on every menu refresh and once
+    // more after commons' updateTopBarColors (which repaints the overflow icon).
+    private fun styleTopBarMenu() {
+        val iconColor = themeColor(ThemeSlot.MENU_ICON)
+        val menuTextColor = themeColor(ThemeSlot.MENU_TEXT)
+        val toolbar = binding.mainToolbar
+        toolbar.overflowIcon?.applyColorFilter(iconColor)
+        val menu = toolbar.menu
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            item.icon?.applyColorFilter(iconColor)
+            item.title?.let { title ->
+                item.title = SpannableString(title).apply {
+                    setSpan(ForegroundColorSpan(menuTextColor), 0, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                }
+            }
+        }
     }
 
     private fun setupOptionsMenu() {
