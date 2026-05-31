@@ -26,6 +26,7 @@ import android.util.TypedValue
 import android.view.ActionMode
 import android.view.Gravity
 import android.view.MenuItem
+import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -110,6 +111,7 @@ import org.fossify.notes.dialogs.SortChecklistDialog
 import org.fossify.notes.extensions.checklistToPlainText
 import androidx.core.view.children
 import org.fossify.notes.extensions.ThemeSlot
+import org.fossify.notes.extensions.applyThemeFont
 import org.fossify.notes.extensions.applyThemeFontIfSet
 import org.fossify.notes.extensions.config
 import org.fossify.notes.extensions.themeColor
@@ -316,9 +318,38 @@ class MainActivity : SimpleActivity() {
                 }
             }
         }
+        styleSettingsShortcut()
+    }
+
+    // The 設定 double-button (top-bar action view): 設 opens the 白い熊 メモ UI page, 定 the regular
+    // Settings; the two characters touch but are independent tap targets.
+    private fun settingsShortcutView(): View? =
+        binding.mainToolbar.menu.findItem(R.id.settings_shortcut)?.actionView
+
+    private fun setupSettingsShortcut() {
+        val view = settingsShortcutView() ?: return
+        view.findViewById<View>(R.id.settings_shortcut_left)?.setOnClickListener {
+            startActivity(Intent(this, ThemeActivity::class.java))
+        }
+        view.findViewById<View>(R.id.settings_shortcut_right)?.setOnClickListener {
+            launchSettings()
+        }
+    }
+
+    // Colour + font the 設定 characters from the SETTINGS_BUTTON slot.
+    private fun styleSettingsShortcut() {
+        val view = settingsShortcutView() ?: return
+        val color = themeColor(ThemeSlot.SETTINGS_BUTTON)
+        listOf(R.id.settings_shortcut_left, R.id.settings_shortcut_right).forEach { id ->
+            view.findViewById<TextView>(id)?.apply {
+                setTextColor(color)
+                applyThemeFont(ThemeSlot.SETTINGS_BUTTON)
+            }
+        }
     }
 
     private fun setupOptionsMenu() {
+        setupSettingsShortcut()
         binding.mainToolbar.setOnMenuItemClickListener { menuItem ->
             if (config.autosaveNotes && menuItem.itemId != R.id.undo && menuItem.itemId != R.id.redo) {
                 saveCurrentNote(false) {

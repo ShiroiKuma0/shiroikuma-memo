@@ -18,6 +18,9 @@
     <string name="theme_group_sub_header">Sub-pages</string>
     <string name="theme_menu_icon">Menu icons</string>
     <string name="theme_menu_text">Menu text</string>
+    <string name="theme_settings_button">設定 characters</string>
+    <string name="settings_shortcut_left">設</string>
+    <string name="settings_shortcut_right">定</string>
     <string name="theme_header_title">Title</string>
     <string name="theme_header_arrow">Back arrow</string>
     <string name="theme_note_text">Note text</string>
