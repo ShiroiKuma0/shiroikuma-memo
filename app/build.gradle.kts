@@ -23,9 +23,12 @@ fun hasSigningVars(): Boolean {
             && providers.environmentVariable("SIGNING_STORE_PASSWORD").orNull != null
 }
 
+val forkVersionName = "${project.property("VERSION_NAME")}+${project.property("BUILD_NUMBER")}"
+val forkVersionCode = project.property("VERSION_CODE").toString().toInt() * 10000 +
+        project.property("BUILD_NUMBER").toString().toInt()
+
 base {
-    val versionCode = project.property("VERSION_CODE").toString().toInt()
-    archivesName = "notes-$versionCode"
+    archivesName = "shiroikuma-memo_${forkVersionName}_arm64-v8a"
 }
 
 android {
@@ -35,8 +38,8 @@ android {
         applicationId = project.property("APP_ID").toString()
         minSdk = project.libs.versions.app.build.minimumSDK.get().toInt()
         targetSdk = project.libs.versions.app.build.targetSDK.get().toInt()
-        versionName = project.property("VERSION_NAME").toString()
-        versionCode = project.property("VERSION_CODE").toString().toInt()
+        versionName = forkVersionName
+        versionCode = forkVersionCode
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas")
         }
@@ -115,7 +118,7 @@ android {
         )
     }
 
-    namespace = project.property("APP_ID").toString()
+    namespace = project.property("APP_NAMESPACE").toString()
 
     lint {
         checkReleaseBuilds = false
@@ -137,6 +140,35 @@ detekt {
     config.setFrom("$rootDir/detekt.yml")
     buildUponDefaultConfig = true
     allRules = false
+}
+
+tasks.register("buildFoss") {
+    description = "Build the foss release APK, copy it to ~/tmp, and bump BUILD_NUMBER for next time."
+    dependsOn("assembleFossRelease")
+    doLast {
+        val apkName = "shiroikuma-memo_${forkVersionName}_arm64-v8a.apk"
+        val outputDir = layout.buildDirectory.dir("outputs/apk/foss/release").get().asFile
+        val targetDir = File(System.getProperty("user.home"), "tmp")
+        targetDir.mkdirs()
+        outputDir.listFiles { _, name -> name.endsWith(".apk") }?.firstOrNull()?.let { apk ->
+            val targetFile = File(targetDir, apkName)
+            apk.copyTo(targetFile, overwrite = true)
+            println("\u001b[1;36m>>> ${targetFile.absolutePath}\u001b[0m")
+            println("\u001b[1;36m>>> versionCode $forkVersionCode\u001b[0m")
+        } ?: throw GradleException("No APK found in $outputDir")
+
+        // Auto-increment BUILD_NUMBER for the next build.
+        val propsFile = rootProject.file("gradle.properties")
+        val currentBuildNumber = project.property("BUILD_NUMBER").toString().toInt()
+        val nextBuildNumber = currentBuildNumber + 1
+        propsFile.writeText(
+            propsFile.readText().replace(
+                "BUILD_NUMBER=$currentBuildNumber",
+                "BUILD_NUMBER=$nextBuildNumber"
+            )
+        )
+        println("\u001b[1;36m>>> BUILD_NUMBER bumped to $nextBuildNumber\u001b[0m")
+    }
 }
 
 dependencies {

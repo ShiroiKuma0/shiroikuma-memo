@@ -11,3 +11,8 @@ keystore.properties
 fastlane/fastlane.json
 fastlane/report.xml
 .kotlin/
+.claude/settings.local.json
+.claude/*.local.json
+.claude/*.*~
+.claude/sessions/
+.claude/.cache/
