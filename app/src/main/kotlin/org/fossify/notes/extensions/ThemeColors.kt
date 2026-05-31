@@ -54,9 +54,11 @@ enum class ThemeSlot(
     TEXT("theme_text", ThemeGroup.FOUNDATION, R.string.theme_text, isFoundation = true),
     TEXT_SECONDARY("theme_text_secondary", ThemeGroup.FOUNDATION, R.string.theme_text_secondary),
 
-    // Top bar & menu — main screen: the top-right action/overflow icons and the overflow ("hamburger") item text
+    // Top bar & menu — main screen: the top-right action/overflow icons, the overflow ("hamburger")
+    // item text, and the 設定 double-button characters
     MENU_ICON("theme_menu_icon", ThemeGroup.MAIN_BAR, R.string.theme_menu_icon),
     MENU_TEXT("theme_menu_text", ThemeGroup.MAIN_BAR, R.string.theme_menu_text),
+    SETTINGS_BUTTON("theme_settings_button", ThemeGroup.MAIN_BAR, R.string.theme_settings_button, hasFont = true),
 
     // Top bar & menu — sub-pages: the toolbar title + back arrow shown on Settings and every sub-page
     HEADER_TITLE("theme_header_title", ThemeGroup.SUB_HEADER, R.string.theme_header_title, hasFont = true),
@@ -90,9 +92,10 @@ private fun Context.themeDefault(slot: ThemeSlot): Int = when (slot) {
     ThemeSlot.TEXT -> getProperTextColor()
     ThemeSlot.TEXT_SECONDARY -> themeColor(ThemeSlot.TEXT).adjustAlpha(SECONDARY_TEXT_ALPHA)
 
-    // Top bar & menu — main screen: icons follow the accent, overflow text follows the body text
+    // Top bar & menu — main screen: icons + 設定 button follow the accent, overflow text follows the body text
     ThemeSlot.MENU_ICON -> themeColor(ThemeSlot.PRIMARY)
     ThemeSlot.MENU_TEXT -> themeColor(ThemeSlot.TEXT)
+    ThemeSlot.SETTINGS_BUTTON -> themeColor(ThemeSlot.PRIMARY)
 
     // Sub-pages: contrast the bar (which commons paints in the background color), matching its own default
     ThemeSlot.HEADER_TITLE -> themeColor(ThemeSlot.BACKGROUND).getContrastColor()

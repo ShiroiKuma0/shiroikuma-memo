@@ -18,6 +18,7 @@
     <string name="theme_group_sub_header">サブページ</string>
     <string name="theme_menu_icon">メニューアイコン</string>
     <string name="theme_menu_text">メニューの文字</string>
+    <string name="theme_settings_button">設定の文字</string>
     <string name="theme_header_title">タイトル</string>
     <string name="theme_header_arrow">戻る矢印</string>
     <string name="theme_note_text">メモの文字</string>

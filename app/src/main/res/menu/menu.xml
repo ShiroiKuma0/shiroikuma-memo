@@ -91,7 +91,7 @@
         android:id="@+id/settings"
         android:icon="@drawable/ic_settings_cog_vector"
         android:title="@string/settings"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/about"
         android:icon="@drawable/ic_info_vector"
@@ -101,4 +101,9 @@
         android:id="@+id/more_apps_from_us"
         android:title="@string/more_fossify_apps"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/settings_shortcut"
+        android:title="@string/settings"
+        app:actionLayout="@layout/menu_settings_shortcut"
+        app:showAsAction="always" />
 </menu>
