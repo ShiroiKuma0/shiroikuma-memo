@@ -17,6 +17,9 @@ upstream release, replay our `custom` customizations on top of it, and produce a
 - `VERSION_NAME` / `VERSION_CODE` in `gradle.properties` **track upstream**.
 - `BUILD_NUMBER` is **our** fork increment. It **resets to `1`** on each new upstream version.
 - Fork `versionName` = `"<VERSION_NAME>+<BUILD_NUMBER>"`, `versionCode` = `VERSION_CODE * 10000 + BUILD_NUMBER`.
+- This fork builds against our **patched Fossify Commons** (`commons = "<ver>-sk1"` from `mavenLocal`, the
+  `~/git/shiroikuma-commons` fork, which strips Commons' anti-tamper "fake version" / sideloading nags).
+  When upstream bumps Commons, the patched fork must be re-cut at the new version — see step 4.
 
 So when upstream's `versionCode` climbs (e.g. 13 → 14), our fork's codes for the new line
 (`140001`, `140002`, …) all exceed the previous line's (`130001`, …), keeping upgrades monotonic.
@@ -39,30 +42,42 @@ So when upstream's `versionCode` climbs (e.g. 13 → 14), our fork's codes for t
    - Resolve conflicts so **all** our customizations survive (see the table below). The conflict-prone
      files are `gradle.properties`, `app/build.gradle.kts`, and `values*/strings.xml`.
 
-4. **Update versioning in `gradle.properties`:**
+4. **Update the patched Commons if upstream bumped it.** Check whether the rebase changed the Commons
+   version in `gradle/libs.versions.toml` (our `custom` commit pins `commons = "<old>-sk1"`; upstream may
+   have moved to a newer Commons, e.g. `6.1.6` → `6.2.0`). If the underlying Commons version changed:
+   - In `~/git/shiroikuma-commons`: `git fetch upstream --tags`, check out the new tag onto `custom`,
+     re-apply the strip patch (remove the modded-app / sideloading checks — see that repo's CLAUDE.md),
+     then `JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew :commons:publishToMavenLocal -PVERSION=<newver>-sk1`.
+   - Resolve the `commons` pin conflict in favour of **our `-sk1` suffix at the new version**
+     (`<newver>-sk1`), never the bare upstream value.
+   If Commons is unchanged, keep the existing `<ver>-sk1` pin (re-publish only if `~/.m2` was cleared).
+
+5. **Update versioning in `gradle.properties`:**
    - Set `VERSION_NAME` / `VERSION_CODE` to the **new upstream** values.
    - **Reset `BUILD_NUMBER` to `1`.**
 
-5. **Verify our customizations are intact** (after resolving the rebase):
+6. **Verify our customizations are intact** (after resolving the rebase):
 
    | What | Expected value | Where |
    | --- | --- | --- |
    | Installed app ID | `shiroikuma.memo` | `gradle.properties` → `APP_ID` |
    | Code namespace | `org.fossify.notes` (unchanged from upstream) | `gradle.properties` → `APP_NAMESPACE` |
    | App launcher label | `白い熊 メモ` | `app_launcher_name` in `values/strings.xml` + `values-ja/strings.xml` |
+   | Patched Commons pin | `commons = "<ver>-sk1"` (from `mavenLocal`) | `gradle/libs.versions.toml` |
    | Fork version logic | `forkVersionName` / `forkVersionCode` + `buildFoss` task | `app/build.gradle.kts` |
    | `namespace = APP_NAMESPACE` | not `APP_ID` | `app/build.gradle.kts` |
 
    Sanity check: `JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew :app:assembleFossRelease --dry-run`
    or a config-only task, to confirm the build script still evaluates.
 
-6. **Build the new `+1`** via the **build-apk** skill
+7. **Build the new `+1`** via the **build-apk** skill
    (`JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew buildFoss < /dev/null`), then **ask** before
-   any `adb push`. This is the first build of the new upstream line (`<newVersion>+1`).
+   any `adb push`. This is the first build of the new upstream line (`<newVersion>+1`). If the build can't
+   resolve `org.fossify:commons:<ver>-sk1`, publish the patched Commons first (step 4).
 
-7. **Stop.** Let the user test. Commit/push only on their explicit **"Push"** (force-push may be needed
+8. **Stop.** Let the user test. Commit/push only on their explicit **"Push"** (force-push may be needed
    for `custom` since rebasing rewrites history: `git push --force-with-lease origin custom`; `main` is a
-   fast-forward).
+   fast-forward). The patched Commons fork (`~/git/shiroikuma-commons`) is pushed separately if it changed.
 
 ## Notes
 
