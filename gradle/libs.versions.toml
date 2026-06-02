@@ -13,7 +13,9 @@ androidx-documentfile = "1.1.0"
 #Room
 room = "2.8.4"
 #Fossify
-commons = "6.1.6"
+# shiroikuma fork: our patched Commons (anti-tamper nags removed), published to mavenLocal.
+# Rebuild/republish with: (in ../shiroikuma-commons) ./gradlew :commons:publishToMavenLocal -PVERSION=6.1.6-sk1
+commons = "6.1.6-sk1"
 #Gradle
 gradlePlugins-agp = "9.2.1"
 #build
