@@ -1,3 +1,6 @@
 <resources>
 
+    <!-- 白い熊 メモ launcher icon: fixed black field behind the yellow-traced memo/pen. -->
+    <color name="sk_ic_launcher_background">#FF000000</color>
+
 </resources>
