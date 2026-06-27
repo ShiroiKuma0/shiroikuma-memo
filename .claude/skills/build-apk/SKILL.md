@@ -1,6 +1,6 @@
 ---
 name: build-apk
-description: Build the signed foss release APK with the buildFoss Gradle task, then always ask whether to scp it to skhw (first choice) or adb push it to the connected phone. Always build first without asking for permission to build — the ONLY question you ever ask is the transfer question afterward. Use whenever the user asks to build the app, build the APK, make a release build, or build and send to the phone.
+description: Build the signed foss release APK with the buildFoss Gradle task, then deliver it automatically via the global /after-build skill (adb push if a phone is connected, else scp to skhw — no prompt). Always build first without asking for permission to build. Use whenever the user asks to build the app, build the APK, make a release build, or build and send to the phone.
 ---
 
 # Build the foss release APK and optionally send to phone
@@ -8,9 +8,9 @@ description: Build the signed foss release APK with the buildFoss Gradle task, t
 > **Never ask whether to build — just build.** When this skill applies (the user
 > asked to build, or you've made changes that are ready to test), run the build
 > immediately. Do **not** ask "shall I build?" / "want me to run buildFoss?" — that
-> question is wrong. The **only** question in this whole flow is the `AskUserQuestion`
-> about transferring the APK, asked **after** a successful build. So: always build,
-> *then* ask about the transfer.
+> question is wrong. There is **no** transfer question either: after a successful build,
+> deliver the APK automatically via the global **`/after-build`** skill (see below). So:
+> always build, *then* let `/after-build` deliver — no prompts at all.
 
 > **The push destination is ALWAYS `/sdcard/tmp/`.** Every `adb push` of the APK
 > goes to `/sdcard/tmp/<apk name>` — **never** `/sdcard/Download/` or anywhere
@@ -28,13 +28,14 @@ description: Build the signed foss release APK with the buildFoss Gradle task, t
 > means *commit-and-push-to-the-fork* — it is unrelated to the `adb push` file
 > copy in step 4.
 
-> **ALWAYS end every build by asking — via `AskUserQuestion` — how to transfer
-> the APK: `scp` to skhw (FIRST choice), `adb push` to `/sdcard/tmp/`, or not at
-> all.** This is mandatory and applies to *every* successful build, even
-> verification builds and even when the user didn't mention transferring. Do
-> **not** settle for asking in prose ("say the word") or assuming the answer —
-> fire the `AskUserQuestion` prompt as the final step (step 3) of the build,
-> every time.
+> **ALWAYS end every build by delivering the APK via the global `/after-build`
+> skill — never ask how to transfer it.** This is mandatory and applies to *every*
+> successful build, even verification builds and even when the user didn't mention
+> transferring. `/after-build` runs `/adb-check` UNSANDBOXED (a sandboxed check
+> wrongly reports no device), then `/adb-push` to `/sdcard/tmp/` if a phone is
+> connected, otherwise `/scp` to `skhw:~/tmp/`, and announces the filename that
+> landed. Do **not** ask "scp or adb push?" / "phone connected?" — invoke
+> `/after-build` and let it decide.
 
 ## Steps
 
@@ -49,22 +50,15 @@ description: Build the signed foss release APK with the buildFoss Gradle task, t
    - This runs `assembleFossRelease`, copies the signed APK to `~/tmp/<apk name>`, and auto-increments `BUILD_NUMBER` in `gradle.properties`.
    - The task prints `>>> <path>` and `>>> versionCode <n>`; use those to confirm the exact filename and code, and confirm `BUILD SUCCESSFUL`.
 
-3. **At the end of every build, ALWAYS ask** via `AskUserQuestion` how to transfer the APK to the phone — no exceptions, no assuming, no asking only in prose. Options, in this order: "Scp to skhw" (FIRST choice) / "adb push" / "No, just build". Fire this prompt as soon as the build reports `BUILD SUCCESSFUL`, regardless of whether the user mentioned transferring.
+3. **At the end of every build, deliver the APK via `/after-build`** — no exceptions, no asking. As soon as the build reports `BUILD SUCCESSFUL` and the signed APK is in `~/tmp/`, invoke the global **`/after-build`** skill; it picks adb-push (phone connected) or scp-to-skhw on its own and announces what landed.
 
-4. **Transfer per the answer:**
-   - **Scp to skhw** — invoke the global **scp** skill (copies the newest APK in `~/tmp/` to `skhw:~/tmp/`). If skhw is unreachable (its tunnel is served by the phone's sshd and may be down), report that and offer the adb push instead.
-   - **adb push:**
-     - `adb devices` — confirm a device is connected.
-     - `adb shell mkdir -p /sdcard/tmp`
-     - `adb push ~/tmp/<apk name> /sdcard/tmp/<apk name>`
-     - Verify: `adb shell ls -l /sdcard/tmp/<apk name>` (size should match the local file in `~/tmp`).
-     - Never `adb install` — the user installs manually from `/sdcard/tmp/`.
+4. **What `/after-build` does** (for reference — you don't run these by hand): `/adb-check` lists devices UNSANDBOXED; if a phone is connected, `/adb-push` copies the newest `~/tmp/*.apk` to `/sdcard/tmp/`; otherwise `/scp` copies it to `skhw:~/tmp/`. It never runs `adb install` — the user installs manually from `/sdcard/tmp/`.
 
 ## Note — transfer directly, do not rely on a task prompt
 
 This repo's `buildFoss` task (`app/build.gradle.kts`) has **no** interactive prompt — it only builds,
-copies the APK to `~/tmp`, and bumps `BUILD_NUMBER`. Asking the user and running the `scp` /
-`adb push` is Claude's job (steps 3–4), done conversationally.
+copies the APK to `~/tmp`, and bumps `BUILD_NUMBER`. Delivering the APK via `/after-build` (steps 3–4)
+is Claude's job.
 
 ## Signing
 
