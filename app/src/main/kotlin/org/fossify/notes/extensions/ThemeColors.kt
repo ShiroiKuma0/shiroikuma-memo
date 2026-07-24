@@ -159,3 +159,36 @@ fun Context.seedBlackYellowThemeIfNeeded() {
     config.accentColor = PALETTE_YELLOW
     config.themeV1Seeded = true
 }
+
+private const val RGB_MASK = 0xFFFFFF
+private const val OLD_MATERIAL_YELLOW_RGB = 0xFFEB3B // PALETTE_YELLOW before the pure-yellow swap
+
+/**
+ * One-time rewrite of every persisted color whose RGB is the old material yellow (#FFEB3B) to the
+ * pure-yellow PALETTE_YELLOW (#FFFF00), keeping the alpha byte — the stock commons colors plus
+ * every set theme-slot override. Per-element fonts and the upstream per-note widget colors are
+ * untouched (the latter were never seeded from the palette).
+ */
+fun Context.migratePureYellowIfNeeded() {
+    if (config.pureYellowMigrated) {
+        return
+    }
+
+    config.backgroundColor = config.backgroundColor.toPureYellow()
+    config.textColor = config.textColor.toPureYellow()
+    config.primaryColor = config.primaryColor.toPureYellow()
+    config.accentColor = config.accentColor.toPureYellow()
+    for (slot in ThemeSlot.entries) {
+        val override = config.getThemeOverride(slot.key)
+        if (override != THEME_UNSET && override != override.toPureYellow()) {
+            config.setThemeOverride(slot.key, override.toPureYellow())
+        }
+    }
+    config.pureYellowMigrated = true
+}
+
+private fun Int.toPureYellow(): Int = if (this and RGB_MASK == OLD_MATERIAL_YELLOW_RGB) {
+    (this and RGB_MASK.inv()) or (PALETTE_YELLOW and RGB_MASK)
+} else {
+    this
+}
