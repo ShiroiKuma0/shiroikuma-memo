@@ -35,6 +35,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.appcompat.widget.ActionMenuView
 import androidx.core.net.toUri
 import androidx.viewpager.widget.ViewPager
 import org.fossify.commons.dialogs.ConfirmationAdvancedDialog
@@ -319,6 +320,25 @@ class MainActivity : SimpleActivity() {
             }
         }
         styleSettingsShortcut()
+        setupOverflowLongTap()
+    }
+
+    // 白い熊 メモ UI: long-tap on the top-right overflow ("hamburger") button opens the UI page.
+    // The overflow button is the only ImageView inside the toolbar's ActionMenuView (real action
+    // items are ActionMenuItemView text views, the 設定 shortcut is a custom layout), and it only
+    // exists after a layout pass — hence the post {}.
+    private fun setupOverflowLongTap() {
+        val toolbar = binding.mainToolbar
+        toolbar.post {
+            val menuView = (0 until toolbar.childCount).map { toolbar.getChildAt(it) }
+                .filterIsInstance<ActionMenuView>().firstOrNull() ?: return@post
+            val overflow = (0 until menuView.childCount).map { menuView.getChildAt(it) }
+                .filterIsInstance<ImageView>().firstOrNull() ?: return@post
+            overflow.setOnLongClickListener {
+                startActivity(Intent(this, ThemeActivity::class.java))
+                true
+            }
+        }
     }
 
     // The 設定 double-button (top-bar action view): 設 opens the 白い熊 メモ UI page, 定 the regular

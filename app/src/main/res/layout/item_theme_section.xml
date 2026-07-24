@@ -1,25 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- kxkb-style section header: a FULL-WIDTH 1px hairline above the group (hidden on the first
+     section), then a big bold heading with a WORD-WIDTH underline. Colors are tinted in code. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/theme_section_holder"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="@dimen/medium_margin"
     android:orientation="vertical"
+    android:paddingTop="10dp"
+    android:paddingBottom="2dp"
     tools:ignore="MissingDefaultResource">
-
-    <TextView
-        android:id="@+id/theme_section_label"
-        style="@style/SettingsSectionLabelStyle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
 
     <View
         android:id="@+id/theme_section_divider"
         android:layout_width="match_parent"
-        android:layout_height="2dp"
-        android:layout_marginStart="@dimen/activity_margin"
-        android:layout_marginEnd="@dimen/activity_margin"
-        android:layout_marginBottom="@dimen/small_margin" />
+        android:layout_height="1px"
+        tools:ignore="PxUsage" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="36dp"
+        android:orientation="vertical"
+        android:paddingTop="8dp">
+
+        <TextView
+            android:id="@+id/theme_section_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <View
+            android:id="@+id/theme_section_underline"
+            android:layout_width="match_parent"
+            android:layout_height="2.5dp"
+            android:layout_marginTop="2dp" />
+
+    </LinearLayout>
 
 </LinearLayout>

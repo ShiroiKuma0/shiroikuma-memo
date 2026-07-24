@@ -1,17 +1,24 @@
 package org.fossify.notes.activities
 
+import android.content.Intent
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.View
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.SeekBar
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.documentfile.provider.DocumentFile
 import org.fossify.commons.dialogs.RadioGroupDialog
 import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.extensions.getProperTextColor
 import org.fossify.commons.extensions.toast
 import org.fossify.commons.extensions.viewBinding
 import org.fossify.commons.helpers.NavigationIcon
+import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.models.RadioItem
 import org.fossify.notes.R
 import org.fossify.notes.databinding.ActivityThemeBinding
@@ -20,7 +27,12 @@ import org.fossify.notes.databinding.ItemThemeSectionBinding
 import org.fossify.notes.databinding.ItemThemeSubgroupBinding
 import org.fossify.notes.databinding.ItemThemeTextBinding
 import org.fossify.notes.dialogs.AlphaColorPickerDialog
+import org.fossify.notes.dialogs.ExportImportDialog
 import org.fossify.notes.dialogs.FontPickerDialog
+import org.fossify.notes.dialogs.latestExportStatus
+import org.fossify.notes.dialogs.showEximFlash
+import org.fossify.notes.dialogs.showExportDoneDialog
+import org.fossify.notes.dialogs.showImportDoneDialog
 import org.fossify.notes.extensions.FontWeightOption
 import org.fossify.notes.extensions.ThemeGroup
 import org.fossify.notes.extensions.ThemeSection
@@ -33,9 +45,21 @@ import org.fossify.notes.extensions.setThemeColor
 import org.fossify.notes.extensions.showFontSample
 import org.fossify.notes.extensions.themeColor
 import org.fossify.notes.helpers.MAX_FONT_SIZE_SP
+import org.fossify.notes.helpers.SettingsExport
 
-// Multiplier on activity_margin for one level of category/subcategory indentation.
-private const val INDENT_STEP_MULTIPLIER = 3
+// kxkb indent ladder: headings at 36dp, then 18dp per level (54 sub-heading, 72 row, 90 sub-row).
+private const val HEADING_INDENT_DP = 36
+private const val INDENT_STEP_DP = 18
+
+// The Export/Import row (kxkb item look) and its status line.
+private const val ROW_TITLE_SP = 16f
+private const val ROW_SUMMARY_SP = 13f
+private const val ROW_PAD_V_DP = 14
+private const val ROW_PAD_END_DP = 16
+private const val ROW_SUMMARY_GAP_DP = 3
+private const val ROW_SUMMARY_ALPHA = 0.7f
+private const val EXIM_WARN_COLOR = 0xFFFF5252.toInt()
+private const val ZIP_MIME = "application/zip"
 
 @Suppress("TooManyFunctions")
 class ThemeActivity : SimpleActivity() {
@@ -45,9 +69,35 @@ class ThemeActivity : SimpleActivity() {
     private var pendingFontSlot: ThemeSlot? = null
     private var pendingFontBinding: ItemThemeTextBinding? = null
 
+    private var eximDialog: ExportImportDialog? = null
+    private var eximFlash: androidx.appcompat.app.AlertDialog? = null
+    private var eximStatusTv: TextView? = null
+    private var pendingEximCats: Set<SettingsExport.Cat> = emptySet()
+
     private val fontImportLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         onFontImported(uri)
     }
+
+    private val eximDirPickerLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            if (uri != null) {
+                onEximDirPicked(uri)
+            }
+        }
+
+    private val eximSaveAsLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument(ZIP_MIME)) { uri ->
+            if (uri != null) {
+                exportToUri(uri)
+            }
+        }
+
+    private val eximImportLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) {
+                importFromUri(uri)
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,6 +117,10 @@ class ThemeActivity : SimpleActivity() {
         previews.clear()
 
         val primaryColor = getProperPrimaryColor()
+
+        // Export/Import is the first separated section on the page (Kōjiki-style).
+        addSectionHeader(getString(R.string.eim_heading), primaryColor, isFirst = true)
+        addEximportRow()
 
         ThemeSection.entries.forEach { section ->
             addSectionHeader(getString(section.labelRes), primaryColor)
@@ -91,11 +145,17 @@ class ThemeActivity : SimpleActivity() {
         }
     }
 
-    private fun addSectionHeader(label: String, primaryColor: Int) {
+    private fun addSectionHeader(label: String, primaryColor: Int, isFirst: Boolean = false) {
         val item = ItemThemeSectionBinding.inflate(layoutInflater, binding.themeHolder, false)
         item.themeSectionLabel.text = label
         item.themeSectionLabel.setTextColor(primaryColor)
-        item.themeSectionDivider.setBackgroundColor(primaryColor)
+        item.themeSectionUnderline.setBackgroundColor(primaryColor)
+        if (isFirst) {
+            // the full-width hairline marks the border to the PREVIOUS section — none above the first
+            item.themeSectionDivider.visibility = View.GONE
+        } else {
+            item.themeSectionDivider.setBackgroundColor(primaryColor)
+        }
         binding.themeHolder.addView(item.root)
     }
 
@@ -104,7 +164,7 @@ class ThemeActivity : SimpleActivity() {
         item.themeSubgroupLabel.text = label
         item.themeSubgroupLabel.setTextColor(primaryColor)
         item.themeSubgroupUnderline.setBackgroundColor(primaryColor)
-        indentRow(item.root, level = 1)
+        item.root.setPaddingRelative(indentPx(1), item.root.paddingTop, item.root.paddingEnd, item.root.paddingBottom)
         binding.themeHolder.addView(item.root)
     }
 
@@ -156,21 +216,22 @@ class ThemeActivity : SimpleActivity() {
         binding.themeHolder.addView(b.root)
     }
 
-    private fun indentStepPx() =
-        resources.getDimensionPixelSize(org.fossify.commons.R.dimen.activity_margin) * INDENT_STEP_MULTIPLIER
+    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 
-    // Place a row's content at an absolute (baseInset + level*step) so every level nests in equal,
-    // prominent steps regardless of the item's own base padding. contentHasInset = true for the text
-    // block whose inner header already carries the base label inset.
+    // Absolute start inset for one ladder level (kxkb convention: 36 + level*18 dp).
+    private fun indentPx(level: Int) = dp(HEADING_INDENT_DP + level * INDENT_STEP_DP)
+
+    // Place a row's content on the kxkb ladder: rows sit one level past their (sub)heading.
+    // contentHasInset = true for the text block whose inner header already carries the base label inset.
     private fun indentRow(view: View, level: Int, contentHasInset: Boolean = false) {
         val baseInset = resources.getDimensionPixelSize(org.fossify.commons.R.dimen.settings_label_start_margin)
-        val start = level * indentStepPx() + (if (contentHasInset) 0 else baseInset)
-        view.setPaddingRelative(start, view.paddingTop, view.paddingEnd, view.paddingBottom)
+        val start = indentPx(level + 1) - (if (contentHasInset) baseInset else 0)
+        view.setPaddingRelative(start.coerceAtLeast(0), view.paddingTop, view.paddingEnd, view.paddingBottom)
     }
 
     // Indent a text element's font/weight/size/sample controls one full step past its name.
     private fun indentTextControls(b: ItemThemeTextBinding) {
-        val step = indentStepPx()
+        val step = dp(INDENT_STEP_DP)
         listOf(b.themeTextFontRow, b.themeTextWeightRow, b.themeTextSizeRow, b.themeTextSample).forEach {
             it.setPaddingRelative(it.paddingStart + step, it.paddingTop, it.paddingEnd, it.paddingBottom)
         }
@@ -231,6 +292,177 @@ class ThemeActivity : SimpleActivity() {
             b.themeTextWeightValue.text = getString(FontWeightOption.fromValue(weight).labelRes)
             refreshSample(b, slot)
         }
+    }
+
+    // --- Export / Import (Kōjiki flow; kxkb row look) ---
+
+    private fun addEximportRow() {
+        val textColor = getProperTextColor()
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val outValue = TypedValue()
+            theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
+            setBackgroundResource(outValue.resourceId)
+            isClickable = true
+            setPadding(0, dp(ROW_PAD_V_DP), dp(ROW_PAD_END_DP), dp(ROW_PAD_V_DP))
+            setOnClickListener { openExportImport() }
+        }
+        row.addView(TextView(this).apply {
+            text = getString(R.string.eim_heading)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, ROW_TITLE_SP)
+            setTextColor(textColor)
+        })
+        row.addView(TextView(this).apply {
+            text = getString(R.string.eim_row_summary)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, ROW_SUMMARY_SP)
+            setTextColor(textColor)
+            alpha = ROW_SUMMARY_ALPHA
+            setPadding(0, dp(ROW_SUMMARY_GAP_DP), 0, 0)
+        })
+        val statusTv = TextView(this).apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, ROW_SUMMARY_SP)
+            setTextColor(textColor)
+            setPadding(0, dp(ROW_SUMMARY_GAP_DP), 0, 0)
+        }
+        eximStatusTv = statusTv
+        row.addView(statusTv)
+        indentRow(row, level = 1)
+        binding.themeHolder.addView(row)
+        refreshEximRowStatus()
+    }
+
+    // Query the configured directory for the latest export whenever the page (re)builds.
+    private fun refreshEximRowStatus() {
+        ensureBackgroundThread {
+            val (message, warn) = latestExportStatus(this)
+            runOnUiThread {
+                eximStatusTv?.text = message
+                eximStatusTv?.setTextColor(if (warn) EXIM_WARN_COLOR else getProperTextColor())
+                eximStatusTv?.typeface = if (warn) Typeface.DEFAULT else Typeface.DEFAULT_BOLD
+            }
+        }
+    }
+
+    private fun openExportImport() {
+        eximDialog = ExportImportDialog(
+            activity = this,
+            onPickDir = { eximDirPickerLauncher.launch(SettingsExport.getDirUri(this)) },
+            onExport = ::onEximExport,
+            onImport = ::onEximImport,
+        )
+    }
+
+    private fun onEximDirPicked(uri: Uri) {
+        runCatching {
+            contentResolver.takePersistableUriPermission(
+                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
+        }
+        SettingsExport.setDirUri(this, uri)
+        eximDialog?.refreshStatus()
+        refreshEximRowStatus()
+    }
+
+    private fun onEximExport(cats: Set<SettingsExport.Cat>) {
+        val dir = SettingsExport.exportDir(this)
+        if (dir == null) {
+            pendingEximCats = cats
+            eximSaveAsLauncher.launch(SettingsExport.exportFileName()) // no directory set → save-as picker
+        } else {
+            exportToFolder(dir, cats)
+        }
+    }
+
+    private fun exportToFolder(dir: DocumentFile, cats: Set<SettingsExport.Cat>) {
+        eximFlash = showEximFlash(this, R.string.eim_exporting)
+        ensureBackgroundThread {
+            val result = runCatching {
+                val name = SettingsExport.exportFileName()
+                val file = dir.createFile(ZIP_MIME, name) ?: error("could not create a file in the folder")
+                contentResolver.openOutputStream(file.uri)?.use { out ->
+                    SettingsExport.export(this, cats, out)
+                } ?: error("no output stream")
+                name
+            }
+            runOnUiThread { onExportFinished(result) }
+        }
+    }
+
+    private fun exportToUri(uri: Uri) {
+        val cats = pendingEximCats
+        eximFlash = showEximFlash(this, R.string.eim_exporting)
+        ensureBackgroundThread {
+            val result = runCatching {
+                contentResolver.openOutputStream(uri)?.use { out ->
+                    SettingsExport.export(this, cats, out)
+                } ?: error("no output stream")
+                DocumentFile.fromSingleUri(this, uri)?.name ?: SettingsExport.EXPORT_PREFIX
+            }
+            runOnUiThread { onExportFinished(result) }
+        }
+    }
+
+    // Success: yellow-bordered OK dialog; acknowledging it closes the panel and this page too.
+    // Failure: a toast, and the panel stays open.
+    private fun onExportFinished(result: Result<String>) {
+        eximFlash?.dismiss()
+        eximFlash = null
+        result.onSuccess { name ->
+            refreshEximRowStatus()
+            eximDialog?.refreshStatus()
+            showExportDoneDialog(this, name) { closeEximChain() }
+        }.onFailure {
+            toast(getString(R.string.eim_export_fail, it.message ?: ""))
+        }
+    }
+
+    private fun onEximImport(cats: Set<SettingsExport.Cat>) {
+        pendingEximCats = cats
+        eximImportLauncher.launch(arrayOf(ZIP_MIME, "application/octet-stream", "*/*"))
+    }
+
+    private fun importFromUri(uri: Uri) {
+        val cats = pendingEximCats
+        eximFlash = showEximFlash(this, R.string.eim_importing)
+        ensureBackgroundThread {
+            val result = runCatching {
+                val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: error("no input stream")
+                require(SettingsExport.categoriesIn(bytes).isNotEmpty()) { getString(R.string.eim_import_none) }
+                SettingsExport.import(this, bytes, cats)
+            }
+            runOnUiThread { onImportFinished(result) }
+        }
+    }
+
+    // Success: bordered info dialog — "Later" closes the whole chain, "Restart now" restarts the app.
+    // Failure: a toast, and the panel stays open.
+    private fun onImportFinished(result: Result<String>) {
+        eximFlash?.dismiss()
+        eximFlash = null
+        result.onSuccess { summary ->
+            showImportDoneDialog(
+                activity = this,
+                summary = summary,
+                onLater = { closeEximChain() },
+                onRestart = { restartApp() },
+            )
+        }.onFailure {
+            toast(getString(R.string.eim_import_fail, it.message ?: ""))
+        }
+    }
+
+    /** Close the whole chain beneath an acknowledged info dialog: the panel, then this page. */
+    private fun closeEximChain() {
+        eximDialog?.dismiss()
+        eximDialog = null
+        finish()
+    }
+
+    private fun restartApp() {
+        val launchIntent = packageManager.getLaunchIntentForPackage(packageName) ?: return
+        startActivity(Intent.makeRestartActivityTask(launchIntent.component))
+        Runtime.getRuntime().exit(0)
     }
 
     private fun onFontImported(uri: Uri?) {
