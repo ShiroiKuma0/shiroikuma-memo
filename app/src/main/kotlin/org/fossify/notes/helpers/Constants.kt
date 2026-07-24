@@ -16,9 +16,10 @@ const val ALL_WIDGET_IDS = "all_widget_ids"
 
 // 白い熊 メモ UI — granular theming + per-element fonts
 const val THEME_V1_SEEDED = "theme_v1_seeded"
+const val PURE_YELLOW_MIGRATED = "pure_yellow_migrated"
 const val THEME_UNSET = Int.MIN_VALUE // a slot with this stored value follows its inherited default
 const val PALETTE_BLACK = 0xFF000000.toInt()
-const val PALETTE_YELLOW = 0xFFFFEB3B.toInt()
+const val PALETTE_YELLOW = 0xFFFFFF00.toInt()
 const val FONT_FAMILY_PREFIX = "font_family_" // String, "" = system/global default
 const val FONT_WEIGHT_PREFIX = "font_weight_" // Int, 0 = default, else 100..900
 const val FONT_SIZE_PREFIX = "font_size_"     // Int sp, 0 = default

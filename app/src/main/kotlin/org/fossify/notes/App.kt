@@ -12,6 +12,7 @@ import org.fossify.commons.extensions.applyColorFilter
 import org.fossify.notes.activities.MainActivity
 import org.fossify.notes.extensions.ThemeSlot
 import org.fossify.notes.extensions.applyThemeFontIfSet
+import org.fossify.notes.extensions.migratePureYellowIfNeeded
 import org.fossify.notes.extensions.seedBlackYellowThemeIfNeeded
 import org.fossify.notes.extensions.themeColor
 
@@ -22,6 +23,8 @@ class App : FossifyApp() {
         super.onCreate()
         // Apply the default black/yellow look once, before any activity themes itself.
         seedBlackYellowThemeIfNeeded()
+        // Rewrite any persisted old material-yellow color to the pure yellow, once.
+        migratePureYellowIfNeeded()
         // Theme every sub-page's top bar (the "Settings" title + back arrow, and the same headers on
         // Theme / About / Customization / …) from the HEADER_TITLE / HEADER_ARROW slots, so it
         // propagates even to commons-owned screens we don't edit.
