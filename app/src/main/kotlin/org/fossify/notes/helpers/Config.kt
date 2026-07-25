@@ -5,6 +5,8 @@ import android.os.Environment
 import android.view.Gravity
 import org.fossify.commons.helpers.BaseConfig
 import org.fossify.notes.models.NoteType
+import java.security.MessageDigest
+import java.security.SecureRandom
 
 @Suppress("TooManyFunctions")
 class Config(context: Context) : BaseConfig(context) {
@@ -134,4 +136,32 @@ class Config(context: Context) : BaseConfig(context) {
 
     fun setFontSize(slotKey: String, value: Int) =
         prefs.edit().putInt(FONT_SIZE_PREFIX + slotKey, value).apply()
+
+    // External-automation intent surface (StateExportReceiver): a master switch plus a shared secret
+    // that every automation broadcast must carry. Same model as the renrakusaki fork's Config.
+    var automationEnabled: Boolean
+        get() = prefs.getBoolean(AUTOMATION_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(AUTOMATION_ENABLED, value).apply()
+
+    /** The shared secret; generated on first read so the settings row always shows a value. */
+    val automationToken: String
+        get() = prefs.getString(AUTOMATION_TOKEN, null)?.takeIf { it.isNotEmpty() } ?: regenerateAutomationToken()
+
+    fun regenerateAutomationToken(): String {
+        val bytes = ByteArray(AUTOMATION_TOKEN_BYTES).also { SecureRandom().nextBytes(it) }
+        val token = bytes.joinToString("") { "%02x".format(it) }
+        prefs.edit().putString(AUTOMATION_TOKEN, token).apply()
+        return token
+    }
+
+    /**
+     * True when the caller's token matches the stored secret (constant-time). The enabled check is kept
+     * separate so callers can report "automation disabled" and "bad token" as distinct failures.
+     */
+    fun isAutomationTokenValid(token: String?): Boolean {
+        if (token.isNullOrEmpty()) {
+            return false
+        }
+        return MessageDigest.isEqual(token.toByteArray(), automationToken.toByteArray())
+    }
 }

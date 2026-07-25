@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A tappable label + value row (e.g. the All-files access state), opening a screen or editor on click. -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/theme_value_holder"
+    style="@style/SettingsHolderTextViewOneLinerStyle"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <org.fossify.commons.views.MyTextView
+        android:id="@+id/theme_value_label"
+        style="@style/SettingsTextLabelStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_centerVertical="true"
+        android:layout_toStartOf="@+id/theme_value_value" />
+
+    <org.fossify.commons.views.MyTextView
+        android:id="@+id/theme_value_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:layout_marginStart="@dimen/normal_margin"
+        android:layout_marginEnd="14dp" />
+
+</RelativeLayout>

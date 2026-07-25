@@ -1,9 +1,17 @@
 package org.fossify.notes.activities
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
+import android.provider.Settings
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.text.style.RelativeSizeSpan
 import android.util.TypedValue
 import android.view.View
 import android.widget.ImageView
@@ -12,20 +20,27 @@ import android.widget.SeekBar
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.documentfile.provider.DocumentFile
+import org.fossify.commons.dialogs.ConfirmationDialog
 import org.fossify.commons.dialogs.RadioGroupDialog
+import org.fossify.commons.extensions.adjustAlpha
 import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.extensions.getProperTextColor
+import org.fossify.commons.extensions.showErrorToast
 import org.fossify.commons.extensions.toast
 import org.fossify.commons.extensions.viewBinding
 import org.fossify.commons.helpers.NavigationIcon
 import org.fossify.commons.helpers.ensureBackgroundThread
+import org.fossify.commons.helpers.isRPlus
 import org.fossify.commons.models.RadioItem
 import org.fossify.notes.R
 import org.fossify.notes.databinding.ActivityThemeBinding
 import org.fossify.notes.databinding.ItemThemeColorBinding
 import org.fossify.notes.databinding.ItemThemeSectionBinding
 import org.fossify.notes.databinding.ItemThemeSubgroupBinding
+import org.fossify.notes.databinding.ItemThemeSwitchBinding
 import org.fossify.notes.databinding.ItemThemeTextBinding
+import org.fossify.notes.databinding.ItemThemeTokenBinding
+import org.fossify.notes.databinding.ItemThemeValueBinding
 import org.fossify.notes.dialogs.AlphaColorPickerDialog
 import org.fossify.notes.dialogs.ExportImportDialog
 import org.fossify.notes.dialogs.FontPickerDialog
@@ -58,8 +73,10 @@ private const val ROW_PAD_V_DP = 14
 private const val ROW_PAD_END_DP = 16
 private const val ROW_SUMMARY_GAP_DP = 3
 private const val ROW_SUMMARY_ALPHA = 0.7f
+private const val ROW_DESC_SCALE = 0.8f
+private const val TOKEN_ABBREVIATION_EDGE = 8
 private const val EXIM_WARN_COLOR = 0xFFFF5252.toInt()
-private const val ZIP_MIME = "application/zip"
+private const val ZIP_MIME = SettingsExport.ZIP_MIME
 
 @Suppress("TooManyFunctions")
 class ThemeActivity : SimpleActivity() {
@@ -118,9 +135,11 @@ class ThemeActivity : SimpleActivity() {
 
         val primaryColor = getProperPrimaryColor()
 
-        // Export/Import is the first separated section on the page (Kōjiki-style).
+        // Export/Import is the first separated section on the page (Kōjiki-style), and the automation
+        // rows sit inside it — every automation intent drives that same export.
         addSectionHeader(getString(R.string.eim_heading), primaryColor, isFirst = true)
         addEximportRow()
+        addAutomationRows()
 
         ThemeSection.entries.forEach { section ->
             addSectionHeader(getString(section.labelRes), primaryColor)
@@ -329,6 +348,129 @@ class ThemeActivity : SimpleActivity() {
         indentRow(row, level = 1)
         binding.themeHolder.addView(row)
         refreshEximRowStatus()
+    }
+
+    // --- Automation (a part of Export / Import): the token-gated intent 白い熊 自由作業盤 exports through ---
+
+    private fun addAutomationRows() {
+        // Two rows, in the order every sister app uses: the master switch (default OFF), then the token.
+        addSwitchRow(
+            title = getString(R.string.enable_automation),
+            description = getString(R.string.enable_automation_desc),
+            checked = config.automationEnabled,
+        ) { config.automationEnabled = it }
+
+        addTokenRow()
+
+        // All-files access: needed so an automation broadcast can write to an arbitrary absolute path
+        // (e.g. 白い熊's backup folder) outside Download/Documents. API 30+ only.
+        if (isRPlus()) {
+            val granted = Environment.isExternalStorageManager()
+            val state = getString(if (granted) R.string.all_files_access_granted else R.string.all_files_access_needed)
+            addValueRow(getString(R.string.all_files_access), state) { openAllFilesAccessSettings() }
+        }
+    }
+
+    private fun addSwitchRow(title: String, description: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+        val b = ItemThemeSwitchBinding.inflate(layoutInflater, binding.themeHolder, false)
+        b.themeSwitchLabel.text = titleWithDescription(title, description)
+        b.themeSwitchLabel.setTextColor(getProperTextColor())
+        b.themeSwitch.isChecked = checked
+        b.root.setOnClickListener {
+            b.themeSwitch.toggle()
+            onChange(b.themeSwitch.isChecked)
+        }
+        indentRow(b.root, level = 1)
+        binding.themeHolder.addView(b.root)
+    }
+
+    // A row's explanation, as a smaller dimmed line below its title — the summary styling, without
+    // needing a second view in the switch layout.
+    private fun titleWithDescription(title: String, description: String): CharSequence =
+        SpannableStringBuilder(title).apply {
+            append("\n")
+            val start = length
+            append(description)
+            setSpan(RelativeSizeSpan(ROW_DESC_SCALE), start, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            setSpan(
+                ForegroundColorSpan(getProperTextColor().adjustAlpha(ROW_SUMMARY_ALPHA)),
+                start, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+
+    /**
+     * The automation-token row: label plus the abbreviated token, tapping anywhere copies the full token,
+     * and a Regenerate action on the right warns before invalidating pasted copies.
+     */
+    private fun addTokenRow() {
+        val b = ItemThemeTokenBinding.inflate(layoutInflater, binding.themeHolder, false)
+        b.themeTokenLabel.text = getString(R.string.automation_token)
+        b.themeTokenLabel.setTextColor(getProperTextColor())
+        b.themeTokenValue.text = abbreviateToken(config.automationToken)
+        b.themeTokenValue.setTextColor(getProperTextColor())
+        b.themeTokenRegenerate.text = getString(R.string.automation_token_regenerate)
+        b.themeTokenRegenerate.setTextColor(getProperPrimaryColor())
+        b.root.setOnClickListener { copyToken() }
+        b.themeTokenRegenerate.setOnClickListener { regenerateToken(b) }
+        indentRow(b.root, level = 1)
+        binding.themeHolder.addView(b.root)
+    }
+
+    private fun copyToken() {
+        // Not commons' copyToClipboard: that one toasts the value itself, which would put the full
+        // secret back on screen right after we deliberately abbreviated it.
+        getSystemService(ClipboardManager::class.java)
+            .setPrimaryClip(ClipData.newPlainText(getString(R.string.automation_token), config.automationToken))
+        toast(R.string.automation_token_copied)
+    }
+
+    private fun regenerateToken(row: ItemThemeTokenBinding) {
+        ConfirmationDialog(
+            activity = this,
+            message = getString(R.string.automation_token_regenerate_warning),
+            positive = R.string.automation_token_regenerate,
+            negative = org.fossify.commons.R.string.cancel,
+        ) {
+            row.themeTokenValue.text = abbreviateToken(config.regenerateAutomationToken())
+            toast(R.string.automation_token_regenerated)
+        }
+    }
+
+    // Shown abbreviated so the secret is not left on screen; the tap still copies it in full.
+    private fun abbreviateToken(token: String): String =
+        if (token.length <= TOKEN_ABBREVIATION_EDGE * 2) {
+            token
+        } else {
+            token.take(TOKEN_ABBREVIATION_EDGE) + "…" + token.takeLast(TOKEN_ABBREVIATION_EDGE)
+        }
+
+    private fun addValueRow(title: String, value: String, onClick: () -> Unit) {
+        val textColor = getProperTextColor()
+        val b = ItemThemeValueBinding.inflate(layoutInflater, binding.themeHolder, false)
+        b.themeValueLabel.text = title
+        b.themeValueLabel.setTextColor(textColor)
+        b.themeValueValue.text = value
+        b.themeValueValue.setTextColor(textColor)
+        b.root.setOnClickListener { onClick() }
+        indentRow(b.root, level = 1)
+        binding.themeHolder.addView(b.root)
+    }
+
+    // Both settings screens are OEM-dependent: catch anything either throws and fall back, since the
+    // only useful reaction to "this ROM has no such screen" is trying the other one.
+    @Suppress("TooGenericExceptionCaught", "SwallowedException")
+    private fun openAllFilesAccessSettings() {
+        try {
+            startActivity(
+                Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:$packageName"))
+            )
+        } catch (e: Exception) {
+            try {
+                startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+            } catch (e2: Exception) {
+                showErrorToast(e2)
+            }
+        }
     }
 
     // Query the configured directory for the latest export whenever the page (re)builds.

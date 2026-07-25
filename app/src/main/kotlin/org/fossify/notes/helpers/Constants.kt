@@ -1,6 +1,7 @@
 package org.fossify.notes.helpers
 
 import android.graphics.Color
+import org.fossify.notes.BuildConfig
 import org.joda.time.DateTime
 
 const val NOTE_ID = "note_id"
@@ -52,6 +53,32 @@ const val MOVE_DONE_CHECKLIST_ITEMS = "move_undone_checklist_items"     // it ha
 const val FONT_SIZE_PERCENTAGE = "font_size_percentage"
 const val EXPORT_MIME_TYPE = "text/plain"
 const val ADD_NEW_CHECKLIST_ITEMS_TOP = "add_new_checklist_items_top"
+
+// 保存復元 state-export automation contract — 白い熊 自由作業盤 backs every sister app up in one run by
+// firing a token-gated broadcast at each of them. The actions carry the installed app id (see the
+// manifest's ${applicationId} placeholders), the extras are the bare names the whole family shares.
+const val ACTION_EXPORT_STATE = "${BuildConfig.APPLICATION_ID}.action.EXPORT_STATE"
+const val ACTION_LIST_CATEGORIES = "${BuildConfig.APPLICATION_ID}.action.LIST_CATEGORIES"
+const val EXTRA_AUTOMATION_TOKEN = "token"
+const val EXTRA_BACKUP_PATH = "path"
+const val EXTRA_EXPORT_ITEMS = "items"
+const val EXTRA_PROGRESS_ACTION = "progress_action"
+const val EXTRA_REPLY_ACTION = "reply_action"
+const val EXTRA_REPLY_PACKAGE = "reply_package"
+const val EXTRA_REPLY_ID = "reply_id"
+const val EXTRA_REPLY_RESULT = "result"
+const val EXTRA_PROGRESS_APP = "app"
+const val EXTRA_PROGRESS_TEXT = "text"
+const val EXTRA_PROGRESS_CURRENT = "current"
+const val EXTRA_PROGRESS_TOTAL = "total"
+const val EXTRA_PROGRESS_UNIT = "unit"
+
+// The automation gate: a master switch (default off) plus a shared secret every broadcast must carry.
+// Both are device-local — SettingsExport keeps them out of the ZIP, so a token never travels in a backup.
+const val AUTOMATION_ENABLED = "automation_enabled"
+const val AUTOMATION_TOKEN = "automation_token"
+const val AUTOMATION_TOKEN_BYTES = 24
+const val PROGRESS_THROTTLE_MS = 500L
 
 // auto backups
 const val AUTOMATIC_BACKUP_REQUEST_CODE = 10001

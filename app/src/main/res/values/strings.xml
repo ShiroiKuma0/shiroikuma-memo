@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_launcher_name">白い熊 メモ</string>
 
     <!-- 白い熊 メモ UI (granular theme & fonts) -->
@@ -50,7 +50,7 @@
 
     <!-- 白い熊 メモ UI — Export/Import of every setting (Kōjiki-style) -->
     <string name="eim_heading">Export / Import</string>
-    <string name="eim_row_summary">Export or import every setting — colours, fonts, app options — by category.</string>
+    <string name="eim_row_summary">Export or import everything — colours, fonts, app options and the notes themselves — by category.</string>
     <string name="eim_dialog_title">Export / Import — 白い熊 メモ</string>
     <string name="eim_dialog_desc">Pick the categories to export or import. Exports are written to the directory below as a single file.</string>
     <string name="eim_dir_caption">Export directory</string>
@@ -62,6 +62,11 @@
     <string name="eim_cat_colors">UI colours</string>
     <string name="eim_cat_fonts">Fonts</string>
     <string name="eim_cat_app">App settings</string>
+    <string name="eim_cat_notes">Notes — every note\'s text</string>
+    <!-- Bare category noun, used in the automation progress lines ("Categories 4/4 — Notes") -->
+    <string name="eim_cat_notes_short">Notes</string>
+    <string name="state_progress_unit_category">Categories</string>
+    <string name="state_progress_unit_notes">Notes</string>
     <string name="eim_export">Export</string>
     <string name="eim_import">Import</string>
     <string name="eim_none_selected">No categories selected.</string>
@@ -70,12 +75,26 @@
     <string name="eim_export_done_title">✓ Export finished</string>
     <string name="eim_export_ok">Exported: %1$s</string>
     <string name="eim_export_fail">Export failed: %1$s</string>
-    <string name="eim_import_done_title">✓ Import — 100% success</string>
+    <!-- The "100%" is prose, not a format specifier — this string is never passed to String.format -->
+    <string name="eim_import_done_title" tools:ignore="StringFormatInvalid">✓ Import — 100% success</string>
     <string name="eim_import_done_body">Restored:\n\n%1$s\n\nRestart to apply everything.</string>
     <string name="eim_import_fail">Import failed: %1$s</string>
     <string name="eim_import_none">No 白い熊 メモ export found in that file.</string>
     <string name="eim_restart_now">Restart now</string>
     <string name="eim_restart_later">Later</string>
+
+    <!-- Automation (Export / Import section): the token-gated intent 白い熊 自由作業盤 uses to back this
+         app up together with its sister apps -->
+    <string name="enable_automation">Automation export</string>
+    <string name="enable_automation_desc">Sister-app tasks may trigger this app\'s export through the token-gated intent.</string>
+    <string name="automation_token">Automation token — tap to copy</string>
+    <string name="automation_token_copied">Token copied to the clipboard</string>
+    <string name="automation_token_regenerate">Regenerate</string>
+    <string name="automation_token_regenerate_warning">Generate a new token? Copies already pasted into 白い熊 自由作業盤 — or any other task — stop working until the new token is pasted there.</string>
+    <string name="automation_token_regenerated">Token regenerated</string>
+    <string name="all_files_access">All-files access</string>
+    <string name="all_files_access_granted">Granted</string>
+    <string name="all_files_access_needed">Not granted — tap to allow writing to any folder</string>
     <string name="widget_config">Thank you for using Fossify Notes.\nFor more apps from Fossify, please visit fossify.org.</string>
     <string name="cannot_share_empty_text">Cannot share empty text</string>
     <string name="new_note">Add a new note</string>
