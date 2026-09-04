@@ -6,11 +6,11 @@
 
 **Fossify Notes in black and pure yellow — themed down to every single element.**
 
-A fork of [Fossify Notes](https://github.com/FossifyOrg/Notes) with **major additions**: a granular per-element theming page (every color, every font), one-ZIP Export/Import of settings **and notes**, headless backup driven by a sister app, per-element custom fonts, a 設定 quick-access double-button, and a black/pure-yellow (`#FFFF00`) default look.
+A fork of [Fossify Notes](https://github.com/FossifyOrg/Notes) with **major additions**: a granular per-element theming page (every color, every font), one-ZIP Export/Import of settings **and notes**, headless backup and a clean-phone data restore driven by sister apps, per-element custom fonts, a 設定 quick-access double-button, and a black/pure-yellow (`#FFFF00`) default look.
 
 Installs **side-by-side** with Fossify Notes (app id `shiroikuma.memo`).
 
-**📥 Latest release: [`1.7.0+14`](https://github.com/ShiroiKuma0/shiroikuma-memo/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-memo/releases)
+**📥 Latest release: [`1.7.0+16`](https://github.com/ShiroiKuma0/shiroikuma-memo/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-memo/releases)
 
 </div>
 
@@ -28,9 +28,13 @@ The first section of the UI page exports and imports the whole app by category �
 
 ---
 
-## 🗄️ Headless backup, together with every sister app (保存復元)
+## 🗄️ Headless backup — and a restore that survives a wiped phone (保存復元)
 
-The same export runs **without any UI**, driven by [白い熊 自由作業盤](https://github.com/ShiroiKuma0/shiroikuma-jiyusagyoban): a token-gated `EXPORT_STATE` broadcast makes this app write its ZIP and reply with the real path and byte size, so one task backs up every 白い熊 app in a single run. A companion `LIST_CATEGORIES` action feeds the caller's checkbox picker with this app's own categories, `items` narrows a run to a subset, and progress comes back as **real counts, never a percentage** (「Notes 128/342」). The gate is a per-app **24-byte token**, generated on the device, compared in constant time, **off by default**, and deliberately excluded from every export — so it can never travel inside a backup. Switch and token live right below the Export/Import row; the token copies to the clipboard on tap.
+The same export runs **without any UI**, driven by [白い熊 自由作業盤](https://github.com/ShiroiKuma0/shiroikuma-jiyusagyoban): an `EXPORT_STATE` broadcast makes this app write its ZIP and reply with the real path and byte size, so one task backs up every 白い熊 app in a single run. `LIST_CATEGORIES` feeds the caller's checkbox picker with this app's own categories, `items` narrows a run to a subset, `CANCEL_EXPORT` stops a run and deletes its partial file, and progress comes back as **real counts, never a percentage** (「Notes 128/342」). Every archive is written under a `.part` name and renamed into place only once it is complete — so a cancelled or killed export never leaves behind something a later restore would mistake for a backup.
+
+The app also answers a **data door**: a `ContentProvider` at `shiroikuma.memo.automation` through which [白い熊 応用管理](https://github.com/ShiroiKuma0/shiroikuma-oyokanri) backs this app up *with its data* and puts it back on a freshly wiped phone. The caller is identified by exact package name, uid, and a **pinned signing certificate** — never a name prefix, which anyone can take — and the backup travels through a file descriptor the caller opened rather than a path it named. Import lives only here and never on a broadcast: it overwrites every note, and the broadcast surface carries no permission.
+
+The gate ships **open** — the switch is on, the token is optional — because a pasted secret cannot survive the wipe this feature exists to recover from. 「Use authorization token?」 turns the token back on when you want it, and a token sent to an app that is not asking for one is quietly ignored rather than refused. The token is generated on the device, compared in constant time, and excluded from every export, so it can never travel inside a backup.
 
 ---
 
@@ -69,4 +73,4 @@ cd shiroikuma-memo
 ./gradlew buildFoss   # signed foss release → ~/tmp/shiroikuma-memo_<version>_arm64-v8a.apk
 ```
 
-Versioning: `<upstream version>+<fork build>` (e.g. `1.7.0+14`), versionCode `upstream*10000+build`.
+Versioning: `<upstream version>+<fork build>` (e.g. `1.7.0+16`), versionCode `upstream*10000+build`.
