@@ -59,6 +59,10 @@ const val ADD_NEW_CHECKLIST_ITEMS_TOP = "add_new_checklist_items_top"
 // manifest's ${applicationId} placeholders), the extras are the bare names the whole family shares.
 const val ACTION_EXPORT_STATE = "${BuildConfig.APPLICATION_ID}.action.EXPORT_STATE"
 const val ACTION_LIST_CATEGORIES = "${BuildConfig.APPLICATION_ID}.action.LIST_CATEGORIES"
+
+// Stopping a running export from where 白い熊 started it. Fire-and-forget: it sends no reply of its own —
+// the one terminal reply belongs to the export it stopped, which answers ERROR:cancelled.
+const val ACTION_CANCEL_EXPORT = "${BuildConfig.APPLICATION_ID}.action.CANCEL_EXPORT"
 const val EXTRA_AUTOMATION_TOKEN = "token"
 const val EXTRA_BACKUP_PATH = "path"
 const val EXTRA_EXPORT_ITEMS = "items"
@@ -73,9 +77,11 @@ const val EXTRA_PROGRESS_CURRENT = "current"
 const val EXTRA_PROGRESS_TOTAL = "total"
 const val EXTRA_PROGRESS_UNIT = "unit"
 
-// The automation gate: a master switch (default off) plus a shared secret every broadcast must carry.
-// Both are device-local — SettingsExport keeps them out of the ZIP, so a token never travels in a backup.
+// The automation gate: a master switch (default ON since contract v2) plus a shared secret that a caller
+// only has to present when AUTOMATION_REQUIRE_TOKEN is on (default off). All three are device-local —
+// SettingsExport keeps them out of the ZIP, so no backup ever carries a token or another phone's switches.
 const val AUTOMATION_ENABLED = "automation_enabled"
+const val AUTOMATION_REQUIRE_TOKEN = "automation_require_token"
 const val AUTOMATION_TOKEN = "automation_token"
 const val AUTOMATION_TOKEN_BYTES = 24
 const val PROGRESS_THROTTLE_MS = 500L

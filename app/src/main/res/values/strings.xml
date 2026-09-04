@@ -83,15 +83,27 @@
     <string name="eim_restart_now">Restart now</string>
     <string name="eim_restart_later">Later</string>
 
-    <!-- Automation (Export / Import section): the token-gated intent 白い熊 自由作業盤 uses to back this
-         app up together with its sister apps -->
+    <!-- Automation (Export / Import section): the intent 白い熊 自由作業盤 backs this app up through,
+         and the data door 白い熊 応用管理 restores it through on a clean phone -->
     <string name="enable_automation">Automation export</string>
-    <string name="enable_automation_desc">Sister-app tasks may trigger this app\'s export through the token-gated intent.</string>
+    <string name="enable_automation_desc">Sister apps may trigger this app\'s export and back its data up.</string>
+    <string name="automation_require_token">Use authorization token?</string>
+    <string name="automation_require_token_desc">Off: any sister app may drive the automation. On: a caller must also present the token below. Either way the data door checks the caller\'s package and signature.</string>
     <string name="automation_token">Automation token — tap to copy</string>
     <string name="automation_token_copied">Token copied to the clipboard</string>
     <string name="automation_token_regenerate">Regenerate</string>
     <string name="automation_token_regenerate_warning">Generate a new token? Copies already pasted into 白い熊 自由作業盤 — or any other task — stop working until the new token is pasted there.</string>
     <string name="automation_token_regenerated">Token regenerated</string>
+    <!-- What 応用管理 lists for this app in its backup screen. Rendered verbatim, so each line says what
+         would actually be lost rather than what the category is called. -->
+    <string name="automation_contains_notes">Notes — authored text; no reinstall or sync can bring it back</string>
+    <string name="automation_contains_app">App settings</string>
+    <string name="automation_contains_colors">UI colours and theme</string>
+    <string name="automation_contains_fonts">Imported fonts</string>
+    <!-- The foreground-service notification while a sister app is backing this app's data up. -->
+    <string name="automation_data_channel">Automation data</string>
+    <string name="automation_data_exporting">Exporting notes and settings…</string>
+    <string name="automation_data_importing">Restoring notes and settings…</string>
     <string name="all_files_access">All-files access</string>
     <string name="all_files_access_granted">Granted</string>
     <string name="all_files_access_needed">Not granted — tap to allow writing to any folder</string>
