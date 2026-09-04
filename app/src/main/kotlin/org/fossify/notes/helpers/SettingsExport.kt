@@ -29,6 +29,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.OutputStream
 import java.text.SimpleDateFormat
@@ -55,6 +56,11 @@ object SettingsExport {
     const val FORMAT_VERSION = 2
     const val ZIP_MIME = "application/zip"
 
+    // What a half-written export is called until it is complete. Deliberately outside EXPORT_SUFFIX, so
+    // latestExport() and any caller scanning for "*.zip" cannot mistake one for a backup.
+    private const val PART_SUFFIX = ".part"
+    private const val OCTET_MIME = "application/octet-stream"
+
     // The app's English dash-separated name, and the prefix every export of ours starts with — the whole
     // family names its backups "<app-name>_<yyyy-MM-dd_HH-mm-ss>.zip" so they sort and read uniformly in
     // 白い熊's one backup directory. Deliberately version-free: a backup is identified by when it was
@@ -72,17 +78,43 @@ object SettingsExport {
     private const val EXIM_PREFS = "shiroikuma_eximport"
     private const val KEY_DIR_URI = "dir_uri"
 
-    /** A selectable export/import category. `id` is the JSON file name (`<id>.json`) inside the ZIP. */
-    enum class Cat(val id: String, @StringRes val labelRes: Int, @StringRes val shortLabelRes: Int) {
-        COLORS("colors", R.string.eim_cat_colors, R.string.eim_cat_colors),
-        FONTS("fonts", R.string.eim_cat_fonts, R.string.eim_cat_fonts),
-        APP_SETTINGS("app_settings", R.string.eim_cat_app, R.string.eim_cat_app),
-        NOTES("notes", R.string.eim_cat_notes, R.string.eim_cat_notes_short);
+    /**
+     * A selectable export/import category. `id` is the JSON file name (`<id>.json`) inside the ZIP.
+     *
+     * [containsRes] is the line 応用管理 shows for this category in its backup list — it comes from the
+     * `describe` header and is rendered **verbatim**, so each of these says what would actually be lost,
+     * not what it is called. Notes are the one category no clean phone can re-supply from anywhere else.
+     */
+    enum class Cat(
+        val id: String,
+        @StringRes val labelRes: Int,
+        @StringRes val shortLabelRes: Int,
+        @StringRes val containsRes: Int,
+    ) {
+        COLORS("colors", R.string.eim_cat_colors, R.string.eim_cat_colors, R.string.automation_contains_colors),
+        FONTS("fonts", R.string.eim_cat_fonts, R.string.eim_cat_fonts, R.string.automation_contains_fonts),
+        APP_SETTINGS(
+            "app_settings", R.string.eim_cat_app, R.string.eim_cat_app, R.string.automation_contains_app,
+        ),
+        NOTES(
+            "notes", R.string.eim_cat_notes, R.string.eim_cat_notes_short, R.string.automation_contains_notes,
+        );
 
         companion object {
             fun byId(id: String): Cat? = entries.firstOrNull { it.id == id }
+
+            /**
+             * The order the `describe` header lists categories in: what 白い熊 would actually mourn,
+             * first. Anything added to the enum and not named here still appears, at the end, so a new
+             * category can never go silently unlisted.
+             */
+            val describeOrder: List<Cat>
+                get() = (listOf(NOTES, APP_SETTINGS, COLORS, FONTS) + entries).distinct()
         }
     }
+
+    /** Thrown out of [export] when the caller's cancel flag turns true. The partial file is then deleted. */
+    class Cancelled : Exception("cancelled")
 
     // The stock commons colors + our migration flags; theme-slot overrides match by "theme_" prefix.
     private val COLOR_KEYS = setOf(
@@ -98,7 +130,7 @@ object SettingsExport {
     private val EXCLUDED_KEYS = setOf(
         APP_ID, APP_RUN_COUNT, LAST_VERSION, CURRENT_NOTE_ID, WIDGET_NOTE_ID,
         LAST_USED_EXTENSION, LAST_USED_SAVE_PATH, "internal_storage_path", "sd_card_path",
-        AUTOMATION_ENABLED, AUTOMATION_TOKEN,
+        AUTOMATION_ENABLED, AUTOMATION_REQUIRE_TOKEN, AUTOMATION_TOKEN,
     )
     private val EXCLUDED_FRAGMENTS = listOf("tree_uri", "otg_", "password", "protection", "sort_folder_")
 
@@ -161,6 +193,7 @@ object SettingsExport {
         cats: Set<Cat>,
         out: OutputStream,
         onProgress: ProgressReporter = { _, _, _, _ -> },
+        isCancelled: () -> Boolean = { false },
     ): String {
         // Declaration order, not the caller's, so a ZIP's contents never depend on how the set was built.
         val ordered = Cat.entries.filter { it in cats }
@@ -180,19 +213,28 @@ object SettingsExport {
             writeEntry(zip, MANIFEST_NAME, manifest.toString(JSON_INDENT).toByteArray())
 
             ordered.forEachIndexed { index, cat ->
+                // Between entries, never mid-write: a cancelled export unwinds at a boundary rather than
+                // being torn down half way through a ZIP entry.
+                if (isCancelled()) throw Cancelled()
                 val done = index + 1L
                 val label = context.getString(cat.shortLabelRes)
                 onProgress(done, total, unit, "$unit $done/$total — $label")
-                parts += "$label: ${writeCategory(context, zip, cat, onProgress)}"
+                parts += "$label: ${writeCategory(context, zip, cat, onProgress, isCancelled)}"
             }
         }
         return parts.joinToString("・")
     }
 
     /** Write one category's data into the ZIP; returns what went in, for the human summary. */
-    private fun writeCategory(context: Context, zip: ZipOutputStream, cat: Cat, onProgress: ProgressReporter): Int =
+    private fun writeCategory(
+        context: Context,
+        zip: ZipOutputStream,
+        cat: Cat,
+        onProgress: ProgressReporter,
+        isCancelled: () -> Boolean,
+    ): Int =
         when (cat) {
-            Cat.NOTES -> exportNotes(context, zip, onProgress)
+            Cat.NOTES -> exportNotes(context, zip, onProgress, isCancelled)
             Cat.FONTS -> exportPrefsEntry(context, zip, cat) + exportFontFiles(context, zip)
             else -> exportPrefsEntry(context, zip, cat)
         }
@@ -234,12 +276,20 @@ object SettingsExport {
     }
 
     /** Every note, with its text — including the content of file-backed notes, so the ZIP stands alone. */
-    private fun exportNotes(context: Context, zip: ZipOutputStream, onProgress: ProgressReporter): Int {
+    private fun exportNotes(
+        context: Context,
+        zip: ZipOutputStream,
+        onProgress: ProgressReporter,
+        isCancelled: () -> Boolean,
+    ): Int {
         val notes = NotesDatabase.getInstance(context).NotesDao().getNotes()
         val unit = context.getString(R.string.state_progress_unit_notes)
         val total = notes.size.toLong()
         val array = JSONArray()
         notes.forEachIndexed { index, note ->
+            // The one loop that can run long enough to be worth interrupting inside; the entry itself is
+            // still written whole, since nothing reaches the ZIP until the array is finished.
+            if (isCancelled()) throw Cancelled()
             onProgress(index + 1L, total, unit, "$unit ${index + 1}/$total")
             array.put(
                 JSONObject()
@@ -263,8 +313,22 @@ object SettingsExport {
 
     // --- headless destination (automation) ---
 
-    /** A resolved headless export destination: where to write, what it is called, how big it ended up. */
-    class Target(val displayPath: String, val open: () -> OutputStream, val size: () -> Long)
+    /**
+     * A resolved headless export destination, written in two steps so a half-backup can never be left
+     * behind: bytes go to `<final-name>.part`, and [commit] renames it into place only once the archive
+     * is closed and complete. [abort] deletes the partial on any failure, timeout or cancellation.
+     *
+     * That distinction is the whole point. 白い熊 keeps every app's backups in one directory sorted by
+     * date, so a truncated archive silently becomes "the latest backup" of this app and is
+     * indistinguishable from a real one until the day someone tries to restore it.
+     */
+    class Target(
+        val open: () -> OutputStream,
+        val commit: () -> Unit,
+        val abort: () -> Unit,
+        val size: () -> Long,
+        val displayPath: () -> String,
+    )
 
     /**
      * Resolve where a headless export writes. Directory precedence, per the automation contract:
@@ -272,24 +336,56 @@ object SettingsExport {
      * null, which the caller reports as "no-directory".
      */
     fun headlessTarget(context: Context, pathOverride: String): Target? {
+        val name = exportFileName()
         if (pathOverride.isNotEmpty()) {
             // /sdcard is a symlink; normalize it so the reply names the real path.
             val primary = Environment.getExternalStorageDirectory().absolutePath
             val dir = File(pathOverride.replaceFirst(Regex("^/sdcard"), primary))
             dir.mkdirs()
             require(dir.isDirectory) { "not a directory: $pathOverride" }
-            val file = File(dir, exportFileName())
-            return Target(file.absolutePath, { FileOutputStream(file) }, { file.length() })
+            val file = File(dir, name)
+            val part = File(dir, name + PART_SUFFIX)
+            return Target(
+                open = { FileOutputStream(part) },
+                commit = { check(part.renameTo(file)) { "cannot rename ${part.name} to $name" } },
+                abort = { part.delete() },
+                size = { file.length() },
+                displayPath = { file.absolutePath },
+            )
         }
 
         val dir = exportDir(context) ?: return null
-        val name = exportFileName()
-        val file = dir.createFile(ZIP_MIME, name) ?: error("cannot create $name in ${dir.name}")
+        val file = stagedSafFile(dir, name)
+        // A provider that would not take the .part name gave us the final name instead; then there is
+        // nothing to rename, and abort() deleting the file is what keeps the directory clean.
+        val staged = file.name == name + PART_SUFFIX
         return Target(
-            displayPath = displayPathOf(file.uri),
             open = { context.contentResolver.openOutputStream(file.uri) ?: error("cannot open ${file.uri}") },
+            commit = { if (staged) check(file.renameTo(name)) { "cannot rename to $name" } },
+            abort = { file.delete() },
             size = { file.length() },
+            displayPath = { displayPathOf(file.uri) },
         )
+    }
+
+    /**
+     * Create `<name>.part` in a SAF directory, falling back to the final name if the provider will not
+     * have it.
+     *
+     * A `DocumentsProvider` rewrites a display name whose extension disagrees with the MIME type it was
+     * given — asking for `…zip.part` as `application/zip` yields `…zip.part.zip`. `application/octet-stream`
+     * is the one MIME every extension already agrees with, so the name survives; the result is checked
+     * rather than assumed, because this is an OEM surface and being wrong here would leave a stray file
+     * named after a backup that never completed.
+     */
+    private fun stagedSafFile(dir: DocumentFile, name: String): DocumentFile {
+        val partName = name + PART_SUFFIX
+        val part = dir.createFile(OCTET_MIME, partName)
+        if (part != null && part.name == partName) {
+            return part
+        }
+        part?.delete()
+        return dir.createFile(ZIP_MIME, name) ?: error("cannot create $name in ${dir.name}")
     }
 
     /**
@@ -312,6 +408,84 @@ object SettingsExport {
     }
 
     // --- import ---
+
+    /**
+     * The categories present in a spooled export ZIP, read one entry at a time.
+     *
+     * The [ByteArray] pair of this and [import] is fine for the Export/Import page, where 白い熊 picked
+     * the file himself. It is not fine for the automation data door: there the archive arrives on a
+     * descriptor whose size the CALLER chooses, and reading it whole would put an unbounded allocation
+     * in the middle of a restore. These two overloads stream a spooled file instead, holding only the
+     * entry being applied.
+     */
+    fun categoriesIn(file: File): Set<Cat> {
+        val found = LinkedHashSet<Cat>()
+        streamEntries(file) { name, _ ->
+            Cat.entries.firstOrNull { "${it.id}.json" == name }?.let { found += it }
+        }
+        return found
+    }
+
+    /**
+     * Apply the selected categories from a spooled ZIP, one entry at a time. See [categoriesIn].
+     *
+     * [onProgress] is also the caller's heartbeat: a restore that goes quiet for two minutes is presumed
+     * dead and its slot failed, so every category applied reports its position as it goes.
+     */
+    fun import(
+        context: Context,
+        file: File,
+        cats: Set<Cat>,
+        onProgress: ProgressReporter = { _, _, _, _ -> },
+    ): String {
+        val applied = LinkedHashMap<Cat, Int>()
+        val fontsDir = FontHelper.getFontsDir(context)
+        val unit = context.getString(R.string.state_progress_unit_category)
+        val total = cats.size.toLong()
+        streamEntries(file) { name, read ->
+            val cat = Cat.entries.firstOrNull { "${it.id}.json" == name }
+            when {
+                cat != null && cat in cats -> {
+                    val json = read().decodeToString()
+                    val n = if (cat == Cat.NOTES) importNotes(context, json) else importPrefs(context, cat, json)
+                    applied[cat] = (applied[cat] ?: 0) + n
+                    val done = applied.keys.size.toLong()
+                    val label = context.getString(cat.shortLabelRes)
+                    onProgress(done, total, unit, "$unit $done/$total — $label")
+                }
+                // Strip the zip path — no traversal outside the fonts directory.
+                name.startsWith(FONTS_DIR) && Cat.FONTS in cats -> {
+                    val fileName = File(name).name
+                    val wrote = fileName.isNotEmpty() &&
+                        runCatching { File(fontsDir, fileName).writeBytes(read()) }.isSuccess
+                    if (wrote) {
+                        applied[Cat.FONTS] = (applied[Cat.FONTS] ?: 0) + 1
+                    }
+                }
+            }
+        }
+        return if (applied.isEmpty()) {
+            "nothing imported"
+        } else {
+            applied.entries.joinToString("\n") { "${context.getString(it.key.labelRes)}: ${it.value}" }
+        }
+    }
+
+    /**
+     * Walk a ZIP's file entries, handing each one its name and a lambda that reads THAT entry's bytes.
+     * An entry whose bytes are never asked for is skipped without ever being decompressed into memory.
+     */
+    private fun streamEntries(file: File, onEntry: (name: String, read: () -> ByteArray) -> Unit) {
+        ZipInputStream(FileInputStream(file).buffered()).use { zip ->
+            var entry = zip.nextEntry
+            while (entry != null) {
+                if (!entry.isDirectory) {
+                    onEntry(entry.name) { zip.readBytes() }
+                }
+                entry = zip.nextEntry
+            }
+        }
+    }
 
     /** The categories present in an export ZIP (empty = not one of our exports). */
     fun categoriesIn(zipBytes: ByteArray): Set<Cat> =
@@ -349,7 +523,11 @@ object SettingsExport {
                 applied++
             }
         }
-        editor.apply()
+        // commit(), not apply(): 応用管理 force-stops this app the instant an automation import reports
+        // success — it has to, because an orderly shutdown writes cached preferences back out and would
+        // silently undo the import. An apply()'s disk write is asynchronous and would simply be lost to
+        // that kill. Both callers already run off the main thread, so the synchronous write costs nothing.
+        editor.commit()
         return applied
     }
 

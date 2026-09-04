@@ -13,14 +13,23 @@
          folder), not just under Download/Documents. Granted by hand; the UI page's Export / Import
          section shows whether it is. -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <!-- The automation data door writes into a caller-supplied descriptor from a foreground service, so
+         a backgrounded export is not frozen part-way and handed back as a truncated archive. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <uses-feature
         android:name="android.hardware.faketouch"
         android:required="false" />
 
+    <!-- Package visibility. The two automation callers are named here because without it a reply
+         broadcast's setPackage() fails SILENTLY on Android 11+: the export runs, writes correctly, and
+         is never heard of. They are the same two packages AutomationCallers pins by signature. -->
     <queries>
         <package android:name="org.fossify.notes.debug" />
         <package android:name="org.fossify.notes" />
+        <package android:name="shiroikuma.oyokanri" />
+        <package android:name="shiroikuma.jiyusagyoban" />
     </queries>
 
     <application
@@ -136,9 +145,15 @@
             android:name=".receivers.AutomaticBackupReceiver"
             android:exported="false" />
 
-        <!-- The 保存復元 state-export contract (白い熊 自由作業盤 drives it). No android:permission —
-             the caller cannot hold one, so the automation token is the gate. See
-             receivers/StateExportReceiver. -->
+        <!-- The 保存復元 state-export contract (白い熊 自由作業盤 drives it). No android:permission, and
+             since contract v2 no compulsory token either: this receiver is the UNAUTHENTICATED half of
+             the surface on purpose — it only ever writes where it was told to and reports what it did.
+             Anything that moves data through a caller-supplied descriptor lives behind the provider
+             below, which knows who is calling. See receivers/StateExportReceiver.
+
+             CANCEL_EXPORT belongs here rather than on the service: the service is exported="false", so
+             a third-party app could not reach a stop button that lived there — which is exactly how a
+             sister app once ended up unable to cancel the export it had started. -->
         <receiver
             android:name=".receivers.StateExportReceiver"
             android:exported="true"
@@ -146,8 +161,43 @@
             <intent-filter>
                 <action android:name="${applicationId}.action.EXPORT_STATE" />
                 <action android:name="${applicationId}.action.LIST_CATEGORIES" />
+                <action android:name="${applicationId}.action.CANCEL_EXPORT" />
             </intent-filter>
         </receiver>
+
+        <!-- The v2 data door: 白い熊 応用管理 backs this app up WITH its data and puts it back on a wiped
+             phone. Exported with no android:permission, deliberately — a custom permission could only be
+             "normal" (any app may hold it) or "signature" (impossible: every app in this family has its
+             own keystore). The caller is instead checked by exact package name, uid, and pinned signing
+             certificate in automation/AutomationCallers. Import exists ONLY here. -->
+        <provider
+            android:name=".automation.AutomationProvider"
+            android:authorities="${applicationId}.automation"
+            android:exported="true"
+            tools:ignore="ExportedContentProvider" />
+
+        <service
+            android:name=".automation.AutomationDataService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Automation data export/import" />
+        </service>
+
+        <!-- Capability discovery, readable WITHOUT waking this app. 白い熊 freezes apps aggressively and
+             a frozen app cannot be asked anything, so 応用管理 reads these across every installed package
+             at once with MATCH_UNINSTALLED_PACKAGES | MATCH_DISABLED_COMPONENTS. An app without them is
+             simply not offered for data backup or restore. -->
+        <meta-data
+            android:name="shiroikuma.automation.contract"
+            android:value="2" />
+        <meta-data
+            android:name="shiroikuma.automation.format"
+            android:value="2" />
+        <meta-data
+            android:name="shiroikuma.automation.min_format"
+            android:value="1" />
 
         <activity-alias
             android:name=".activities.SplashActivity.Red"

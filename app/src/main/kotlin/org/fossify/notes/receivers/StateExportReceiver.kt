@@ -9,6 +9,7 @@ import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isRPlus
 import org.fossify.notes.R
 import org.fossify.notes.extensions.config
+import org.fossify.notes.helpers.ACTION_CANCEL_EXPORT
 import org.fossify.notes.helpers.ACTION_EXPORT_STATE
 import org.fossify.notes.helpers.ACTION_LIST_CATEGORIES
 import org.fossify.notes.helpers.EXTRA_AUTOMATION_TOKEN
@@ -34,15 +35,29 @@ import java.util.concurrent.atomic.AtomicBoolean
 /**
  * The 保存復元 state-export contract, for 白い熊 自由作業盤's one-run backup of every sister app.
  *
- * Two exported, token-gated actions:
+ * Three exported actions, gated by [org.fossify.notes.helpers.Config.refuseAutomation] — the switch
+ * ships ON and the token is opt-in since contract v2, so a token sent to this app while it is not asking
+ * for one is IGNORED rather than refused:
  *  - [ACTION_LIST_CATEGORIES] — instant; replies "OK:" plus one `id<TAB>label` line per selectable
  *    category, so the caller can render its own checkbox picker. Our list is flat, so no line carries
  *    the optional third `parent-id` field.
  *  - [ACTION_EXPORT_STATE] — runs the same category ZIP export as the Export/Import page, headlessly
  *    (no Activity, no interaction), and replies with the written path and its real size. Extras:
- *    "token", optional "path" (an absolute directory that OVERRIDES the configured export directory),
- *    optional "items" (comma-separated category ids; absent = everything), optional "progress_action",
- *    plus "reply_action"/"reply_package"/"reply_id".
+ *    optional "token", optional "path" (an absolute directory that OVERRIDES the configured export
+ *    directory), optional "items" (comma-separated category ids; absent = everything), optional
+ *    "progress_action", plus "reply_action"/"reply_package"/"reply_id".
+ *  - [ACTION_CANCEL_EXPORT] — stops the running export, deletes its partial file and lets it answer
+ *    "ERROR:cancelled". Fire-and-forget: it sends no reply of its own, and is a silent no-op when
+ *    nothing is running. See [StateExportJob].
+ *
+ * The archive is written to `<final-name>.part` and renamed into place only once it is closed and
+ * complete, so a cancelled, failed or killed export never leaves something a later restore would find.
+ * 白い熊 keeps every app's backups in one directory sorted by date, where a truncated archive silently
+ * becomes "the latest backup" of this app.
+ *
+ * Importing is deliberately NOT here. This receiver is exported with no permission, so an import action
+ * on it would let any app on the phone overwrite every note; it lives behind
+ * [org.fossify.notes.automation.AutomationProvider], which can identify its caller.
  *
  * Directory precedence: the "path" extra → the app's configured export directory → ERROR:no-directory.
  * One request writes exactly one ZIP — settings and notes together — which is the file a restore takes.
@@ -74,7 +89,12 @@ class StateExportReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
-        if (action != ACTION_EXPORT_STATE && action != ACTION_LIST_CATEGORIES) {
+        if (action != ACTION_EXPORT_STATE && action != ACTION_LIST_CATEGORIES && action != ACTION_CANCEL_EXPORT) {
+            return
+        }
+
+        if (action == ACTION_CANCEL_EXPORT) {
+            cancel(context.applicationContext, intent)
             return
         }
 
@@ -119,12 +139,39 @@ class StateExportReceiver : BroadcastReceiver() {
         when (request) {
             is Request.Done -> finishWith(request.result)
             is Request.Export -> {
-                val progress = throttledProgress(appContext, progressAction, replyPackage, replyId)
-                ensureBackgroundThread {
-                    finishWith(export(appContext, request.cats, request.path, progress))
+                // Process-local and released in a finally: §1 forbids two exports at once, and a guard
+                // that could outlive its export would wedge the app until the process died.
+                val run = StateExportJob.begin(replyId)
+                if (run == null) {
+                    finishWith("ERROR:export already running")
+                } else {
+                    val progress = throttledProgress(appContext, progressAction, replyPackage, replyId)
+                    ensureBackgroundThread {
+                        try {
+                            finishWith(export(appContext, request.cats, request.path, progress, run))
+                        } finally {
+                            StateExportJob.end(run)
+                        }
+                    }
                 }
             }
         }
+    }
+
+    /**
+     * Stop the running export. No reply of its own — the one terminal reply belongs to the export this
+     * stopped, which answers `ERROR:cancelled` through the channel its caller is already listening on.
+     *
+     * The gate is checked but its refusal is swallowed: there is nothing to report a refusal *to*, and a
+     * cancel is safe to send at any time, so a closed app simply ignores it.
+     */
+    private fun cancel(context: Context, intent: Intent) {
+        val refusal = context.config.refuseAutomation(intent.getStringExtra(EXTRA_AUTOMATION_TOKEN))
+        if (refusal != null) {
+            Log.i(TAG, "cancel ignored: $refusal")
+            return
+        }
+        StateExportJob.requestCancel(intent.getStringExtra(EXTRA_REPLY_ID)?.trim().orEmpty())
     }
 
     /**
@@ -140,13 +187,16 @@ class StateExportReceiver : BroadcastReceiver() {
         val cats = parseItems(itemsRaw)
         Log.i(
             TAG,
-            "received $action: enabled=${config.automationEnabled}, tokenLen=${token?.length ?: 0}, " +
+            "received $action: enabled=${config.automationEnabled}, " +
+                "requireToken=${config.automationRequireToken}, tokenLen=${token?.length ?: 0}, " +
                 "items=$itemsRaw, path=$path"
         )
 
+        // One function, so "automation disabled" and "bad token" cannot drift apart between the three
+        // entry points — and so a token this app is not asking for is ignored rather than refused.
+        config.refuseAutomation(token)?.let { return Request.Done(it) }
+
         return when {
-            !config.automationEnabled -> Request.Done("ERROR:automation disabled")
-            !config.isAutomationTokenValid(token) -> Request.Done("ERROR:bad token")
             action == ACTION_LIST_CATEGORIES -> Request.Done(categoryList(context))
             cats == null -> Request.Done("ERROR:unknown category in items: $itemsRaw")
             path.isNotEmpty() && !path.startsWith("/") ->
@@ -179,6 +229,7 @@ class StateExportReceiver : BroadcastReceiver() {
         cats: Set<SettingsExport.Cat>,
         path: String,
         progress: ThrottledProgress,
+        run: StateExportJob.Run,
     ): String {
         val target = try {
             SettingsExport.headlessTarget(context, path) ?: return "ERROR:no-directory"
@@ -190,11 +241,20 @@ class StateExportReceiver : BroadcastReceiver() {
             // The counted length is the fallback for a destination we cannot stat; it is final once
             // export() returns, which is after the ZIP's central directory has been flushed.
             val counting = CountingOutputStream(target.open())
-            counting.use { SettingsExport.export(context, cats, it, progress.reporter) }
+            counting.use { SettingsExport.export(context, cats, it, progress.reporter) { run.cancelled } }
+            // Only now does the archive get its real name. Everything above this line wrote to a
+            // ".part" that no restore would ever pick up.
+            target.commit()
             val bytes = target.size().takeIf { it > 0 } ?: counting.count
             progress.final(cats.size.toLong())
-            "OK:${target.displayPath}|$bytes|${humanSize(bytes)}|${cats.size} categories"
+            "OK:${target.displayPath()}|$bytes|${humanSize(bytes)}|${cats.size} categories"
+        } catch (cancelled: SettingsExport.Cancelled) {
+            // The point of the cancel action: the directory is left exactly as it was found.
+            Log.i(TAG, "export ${cancelled.message}, partial file removed")
+            target.abort()
+            "ERROR:cancelled"
         } catch (e: Exception) {
+            target.abort()
             storageError(path, e)
         }
     }

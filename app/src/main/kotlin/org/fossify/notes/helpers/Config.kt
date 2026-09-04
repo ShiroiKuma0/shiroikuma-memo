@@ -137,11 +137,23 @@ class Config(context: Context) : BaseConfig(context) {
     fun setFontSize(slotKey: String, value: Int) =
         prefs.edit().putInt(FONT_SIZE_PREFIX + slotKey, value).apply()
 
-    // External-automation intent surface (StateExportReceiver): a master switch plus a shared secret
-    // that every automation broadcast must carry. Same model as the renrakusaki fork's Config.
+    // External-automation surface (StateExportReceiver + AutomationProvider): a master switch, and a
+    // shared secret that is now OPTIONAL. Same model as every sister app's gate.
+    //
+    // Contract v2 (白い熊, 2026-09-04) flipped both defaults, and the reason is the clean phone: the
+    // token used to be compulsory and the switch shipped OFF, so this app was unreachable until it had
+    // been turned on and a 48-character secret pasted into the caller. A pasted secret cannot survive a
+    // wipe, and restoring apps AND their data onto a wiped device is exactly what the family now exists
+    // to do. So the switch ships ON, the token is opt-in, and the identity check that actually matters
+    // moved to the data door, which can see who is calling (see automation/AutomationCallers).
     var automationEnabled: Boolean
-        get() = prefs.getBoolean(AUTOMATION_ENABLED, false)
+        get() = prefs.getBoolean(AUTOMATION_ENABLED, true)
         set(value) = prefs.edit().putBoolean(AUTOMATION_ENABLED, value).apply()
+
+    /** Whether a caller must also present [automationToken]. Default false — the token is opt-in now. */
+    var automationRequireToken: Boolean
+        get() = prefs.getBoolean(AUTOMATION_REQUIRE_TOKEN, false)
+        set(value) = prefs.edit().putBoolean(AUTOMATION_REQUIRE_TOKEN, value).apply()
 
     /** The shared secret; generated on first read so the settings row always shows a value. */
     val automationToken: String
@@ -163,5 +175,25 @@ class Config(context: Context) : BaseConfig(context) {
             return false
         }
         return MessageDigest.isEqual(token.toByteArray(), automationToken.toByteArray())
+    }
+
+    /**
+     * The whole automation gate, in the one place every entry point asks. Returns null to proceed, or the
+     * exact `ERROR:` line to answer with.
+     *
+     * Written as one function on purpose: the receiver, the provider and the data service must not each
+     * spell the two checks out in a subtly different order, which is how "automation disabled" and
+     * "bad token" drift apart across a family of forty-two apps. They stay distinct answers because they
+     * debug differently.
+     *
+     * **A token handed to an app that does not require one is IGNORED, never an error.** Tokens live in
+     * task arguments and workspace variables that outlive the setting they were pasted for, and a caller
+     * still sending one — because another app on the batch does want one — must be served. Refusing it
+     * would turn "白い熊 turned a switch off" into "half the batch mysteriously fails".
+     */
+    fun refuseAutomation(candidate: String?): String? = when {
+        !automationEnabled -> "ERROR:automation disabled"
+        automationRequireToken && !isAutomationTokenValid(candidate) -> "ERROR:bad token"
+        else -> null
     }
 }

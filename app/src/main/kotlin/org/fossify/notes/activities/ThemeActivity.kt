@@ -350,17 +350,34 @@ class ThemeActivity : SimpleActivity() {
         refreshEximRowStatus()
     }
 
-    // --- Automation (a part of Export / Import): the token-gated intent 白い熊 自由作業盤 exports through ---
+    // --- Automation (a part of Export / Import): the intent 白い熊 自由作業盤 exports through, and the
+    // data door 白い熊 応用管理 restores this app through on a clean phone ---
 
     private fun addAutomationRows() {
-        // Two rows, in the order every sister app uses: the master switch (default OFF), then the token.
+        // Three rows, in the order every sister app uses: the master switch (default ON since contract
+        // v2), the token opt-in (default OFF), and the token itself — shown only when it is actually
+        // being asked for. A 48-character secret sitting under an off switch only invites 白い熊 to paste
+        // it somewhere it would do nothing.
         addSwitchRow(
             title = getString(R.string.enable_automation),
             description = getString(R.string.enable_automation_desc),
             checked = config.automationEnabled,
         ) { config.automationEnabled = it }
 
-        addTokenRow()
+        addSwitchRow(
+            title = getString(R.string.automation_require_token),
+            description = getString(R.string.automation_require_token_desc),
+            checked = config.automationRequireToken,
+        ) {
+            config.automationRequireToken = it
+            // Rebuilt rather than toggled: the token row below exists only while this switch is on.
+            // Posted, so the rows are not torn down inside their own click dispatch.
+            binding.themeHolder.post { buildRows() }
+        }
+
+        if (config.automationRequireToken) {
+            addTokenRow()
+        }
 
         // All-files access: needed so an automation broadcast can write to an arbitrary absolute path
         // (e.g. 白い熊's backup folder) outside Download/Documents. API 30+ only.
