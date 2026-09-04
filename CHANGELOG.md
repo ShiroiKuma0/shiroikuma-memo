@@ -1,3 +1,53 @@
+# 白い熊 メモ — changelog
+
+This file carries **both** histories: 白い熊 メモ's own fork releases first, then the upstream
+Fossify Notes changelog below, untouched. Earlier fork releases are on the
+[releases page](https://github.com/ShiroiKuma0/shiroikuma-memo/releases).
+
+## 白い熊 メモ 1.7.0+16 — 2026-09-04
+Built on Fossify Notes 1.7.0.
+
+### Added
+- **Automation data door** — an exported `ContentProvider` at `shiroikuma.memo.automation` with
+  `describe` / `export` / `import` / `cancel`, so 白い熊 応用管理 can back this app up together with
+  its data and restore it onto a wiped phone. The caller is identified by exact package name, uid
+  cross-check and a pinned signing certificate; the payload moves through a file descriptor the
+  caller supplied, never a path or a URI. `import` exists only here, never as a broadcast.
+- `describe` returns a header — app id, version, format `2`, minimum readable format `1`, and a
+  `contains` list naming what would be lost — without exporting anything, so a caller can list this
+  app and judge compatibility before streaming a byte.
+- Manifest `<meta-data>` advertising the contract and format versions, readable without waking the
+  app, so a frozen app can still be listed for backup.
+- **`CANCEL_EXPORT` action**, routed through the exported receiver so a caller can actually reach
+  it. It stops the export at an entry boundary, deletes the partial file, and answers
+  `ERROR:cancelled`; it is a silent no-op when nothing is running.
+- **「Use authorization token?」 switch** in the Export/Import section; the token row now appears
+  only while it is on.
+
+### Changed
+- **The automation gate ships open**: the master switch now defaults to on and the token is opt-in,
+  because a pasted secret cannot survive the wipe this feature exists to recover from. A token sent
+  to the app while it is not asking for one is ignored, never refused. Both checks moved into a
+  single function shared by every entry point.
+- **Exports are written atomically** — to `<name>.zip.part`, renamed into place only once the
+  archive is complete — from the automation path and the Export/Import page alike, so a cancelled,
+  failed or killed export leaves the backup directory exactly as it found it.
+- Only one export runs at a time; the guard is process-local and released in a `finally`.
+- An automation import is spooled to the cache and applied one archive entry at a time rather than
+  read whole into memory, since the size of what arrives is the caller's choice.
+- Data-door progress is driven by a timer as well as by the work — at least one message every 20
+  seconds while the numbers are not moving — because the caller's descriptor may be a pipe and a
+  single write can block for as long as the caller is slow to drain it.
+- `<queries>` now names both 白い熊 応用管理 and 白い熊 自由作業盤: without it a reply's
+  `setPackage` fails silently on Android 11+, and package visibility filtering would also make an
+  invisible caller fail the identity check outright.
+- The automation switches are excluded from the export in both directions, as the token already was.
+
+### Fixed
+- **A restore could report success while the settings never reached disk.** Settings imports now
+  commit synchronously: 応用管理 force-stops the app the instant an import reports success, and an
+  asynchronous write was simply lost to that kill.
+
 # Changelog
 All notable changes to this project will be documented in this file.
 
