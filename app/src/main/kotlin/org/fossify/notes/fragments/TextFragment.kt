@@ -1,5 +1,7 @@
 package org.fossify.notes.fragments
 
+import org.fossify.commons.helpers.UiRole
+import org.fossify.commons.helpers.uiColor
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Typeface
@@ -161,7 +163,7 @@ class TextFragment : NoteFragment() {
             setTextSize(TypedValue.COMPLEX_UNIT_PX, context.getPercentageFontSize())
             // 白い熊 メモ UI: per-element font override (family / weight / size) on top of the global font.
             applyThemeFontIfSet(ThemeSlot.NOTE_TEXT)
-            highlightColor = adjustedPrimaryColor.adjustAlpha(.4f)
+            highlightColor = context.uiColor(UiRole.FIELD_SELECTION)
 
             gravity = config.getTextGravity()
             if (text.toString() != fileContents) {

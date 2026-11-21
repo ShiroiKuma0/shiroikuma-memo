@@ -1,5 +1,9 @@
 package org.fossify.notes.fragments
 
+import android.graphics.Typeface
+import org.fossify.commons.extensions.pillDrawable
+import org.fossify.commons.helpers.UiRole
+import org.fossify.commons.helpers.uiColor
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -26,6 +30,9 @@ import org.fossify.notes.models.Note
 import org.fossify.notes.models.NoteItem
 import org.fossify.notes.models.Task
 import java.io.File
+
+private const val PILL_PAD_H_DP = 18
+private const val PILL_PAD_V_DP = 9
 
 class TasksFragment : NoteFragment(), TasksActionListener {
 
@@ -118,8 +125,17 @@ class TasksFragment : NoteFragment(), TasksActionListener {
 
         binding.fragmentPlaceholder.setTextColor(requireActivity().getProperTextColor())
         binding.fragmentPlaceholder2.apply {
-            setTextColor(adjustedPrimaryColor)
-            underlineText()
+            // the one action of an empty checklist: an outlined pill, the main one
+            val density = resources.displayMetrics.density
+            setTextColor(context.uiColor(UiRole.BUTTON_TEXT))
+            setTypeface(typeface, Typeface.BOLD)
+            background = context.pillDrawable(
+                context.uiColor(UiRole.BUTTON_FRAME), context.uiColor(UiRole.BUTTON_GROUND), main = true,
+            )
+            val h = (PILL_PAD_H_DP * density).toInt()
+            val v = (PILL_PAD_V_DP * density).toInt()
+            setPadding(h, v, h, v)
+            (layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin = (PILL_PAD_H_DP * density).toInt()
             setOnClickListener {
                 showNewItemDialog()
             }

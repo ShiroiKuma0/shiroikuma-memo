@@ -1,5 +1,8 @@
 package org.fossify.notes.dialogs
 
+import org.fossify.commons.extensions.rippleDrawable
+import org.fossify.notes.extensions.ThemeSlot
+import org.fossify.notes.extensions.themeColor
 import android.content.DialogInterface
 import androidx.appcompat.app.AlertDialog
 import org.fossify.commons.activities.BaseSimpleActivity
@@ -13,8 +16,8 @@ class UnlockNotesDialog(val activity: BaseSimpleActivity, val notes: List<Note>,
     private var dialog: AlertDialog? = null
     private val binding = DialogUnlockNotesBinding.inflate(activity.layoutInflater)
     private val view = binding.root
-    private val redColor = activity.getColor(org.fossify.commons.R.color.md_red)
-    private val greenColor = activity.getColor(org.fossify.commons.R.color.md_green)
+    private val redColor = activity.themeColor(ThemeSlot.LOCK_CLOSED)
+    private val greenColor = activity.themeColor(ThemeSlot.LOCK_OPEN)
     private val unlockedNoteIds = mutableListOf<Long>()
 
     init {
@@ -41,6 +44,7 @@ class UnlockNotesDialog(val activity: BaseSimpleActivity, val notes: List<Note>,
             binding.notesHolder.addView(this.root)
             activity.updateTextColors(binding.notesHolder)
             lockedNoteTitle.text = note.title
+            lockedNoteHolder.background = activity.rippleDrawable()
             lockedUnlockedImage.applyColorFilter(redColor)
             lockedNoteHolder.setOnClickListener {
                 if (note.id !in unlockedNoteIds) {

@@ -31,7 +31,7 @@ customizations on top of upstream and rebuild as upstream releases new versions.
 | Code namespace | `org.fossify.notes` (unchanged from upstream) | `gradle.properties` → `APP_NAMESPACE` |
 | App launcher label | `白い熊 メモ` | `app_launcher_name` in `values/strings.xml` + `values-ja/strings.xml` |
 | Signing | reuses the denwa keystore | `keystore.properties` (gitignored) → `~/.android-keystores/shiroikuma-denwa.jks` |
-| UI default palette | black `#000000` + **pure yellow `#FFFF00`** (never material `#FFEB3B`) | `PALETTE_BLACK` / `PALETTE_YELLOW` in `helpers/Constants.kt` |
+| UI default palette | black `#000000` + **pure yellow `#FFFF00`** (never material `#FFEB3B`) | written once, in commons: `FAMILY_BLACK` / `FAMILY_YELLOW` in `helpers/UiRoles.kt` — this app names no colour of its own for them |
 
 The app ID is deliberately changed so this fork installs **alongside** upstream / other apps without
 conflict. The namespace is intentionally kept as `org.fossify.notes` so `R`/`BuildConfig` and all
@@ -43,12 +43,22 @@ We base our version on upstream and add a fork increment (`BUILD_NUMBER`).
 
 - `VERSION_NAME` / `VERSION_CODE` in `gradle.properties` **track upstream** (currently `1.7.0` / `13`).
 - `BUILD_NUMBER` is **our** increment. It starts at `1` and bumps by `1` on every build with changes.
-- Fork `versionName` = `"<VERSION_NAME>+<BUILD_NUMBER>"` (e.g. `1.7.0+1`).
-- Fork `versionCode` = `VERSION_CODE * 10000 + BUILD_NUMBER` (e.g. `13 * 10000 + 1 = 130001`).
-- Output APK filename = `shiroikuma-memo_<VERSION_NAME>+<BUILD_NUMBER>_arm64-v8a.apk`
-  (e.g. `shiroikuma-memo_1.7.0+1_arm64-v8a.apk`).
+  It is stored in `gradle.properties` as a **bare integer** (`BUILD_NUMBER=17`) — that is what
+  `buildFoss` increments.
+- **The counter is zero-padded to three digits everywhere it is displayed** (白い熊's global
+  `after-build` rule): in the version name, the APK filename, the git tag and the release title, so
+  those lists sort in build order instead of lexically (`+002` before `+010`, not after it).
+- Fork `versionName` = `"<VERSION_NAME>+<BUILD_NUMBER padded to 3>"` (e.g. `1.7.0+017`).
+- Fork `versionCode` = `VERSION_CODE * 10000 + BUILD_NUMBER` (e.g. `13 * 10000 + 17 = 130017`) —
+  arithmetic on the bare integer; the padding never reaches it.
+- Output APK filename = `shiroikuma-memo_<VERSION_NAME>+<NNN>_arm64-v8a.apk`
+  (e.g. `shiroikuma-memo_1.7.0+017_arm64-v8a.apk`).
 
-So the first build is `+1` (`130001`), the next build with changes is `+2` (`130002`), and so on.
+So the first build is `+001` (`130001`), the next build with changes is `+002` (`130002`), and so on.
+
+**Never retag or rename what is already published.** Releases up to `1.7.0+16` were cut before the
+padding rule was applied here and keep their unpadded tags; publishing simply carries on padded from
+the current build. Expect the padded tags to sort before the older unpadded ones for a while.
 
 ### Building
 
@@ -74,7 +84,7 @@ When the user says a new upstream version is out, follow the **upstream-new-vers
 2. Advance `main` to the new upstream release.
 3. Rebase `custom` onto `main`, preserving every customization in the table above.
 4. Set `VERSION_NAME` / `VERSION_CODE` to the new upstream values and **reset `BUILD_NUMBER` to `1`**.
-5. Build the new `+1` version with `./gradlew buildFoss`; continue further changes as `+2`, `+3`, …
+5. Build the new `+001` version with `./gradlew buildFoss`; continue further changes as `+002`, `+003`, …
 
 ### HARD RULES (do not violate)
 
@@ -149,7 +159,7 @@ colors") whenever the installed app id is not `org.fossify.*` — always the cas
 
 - **Source:** the `shiroikuma-commons` fork (`~/git/shiroikuma-commons`, branch `custom`), which strips
   Commons' anti-tamper "fake version" / sideloading checks out entirely.
-- **Delivery:** published to the local Maven repo, consumed as `commons = "6.1.6-sk1"` in
+- **Delivery:** published to the local Maven repo, consumed as `commons = "6.1.6-sk19"` in
   `gradle/libs.versions.toml` (`mavenLocal()` is already a repository in `settings.gradle.kts`).
 - Because Commons itself no longer nags, this app carries **no** in-app workaround — no `getPackageName`
   spoof, no `SIDELOADING_FALSE`, no `res/raw/keep.xml`.
@@ -163,6 +173,35 @@ JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew :commons:publishToMavenLo
 ```
 
 Then set this app's `commons` pin to `<ver>-sk1`. The patched AAR lives only in `~/.m2`, not in the repo.
+
+## The black-yellow look (1.7.0+018, commons sk19)
+
+The app follows 白い熊's global **black-yellow-theme** skill in full. What a later change has to keep:
+
+- **Every colour is a settable role; no colour is written in XML.** `extensions/ThemeColors.kt` holds
+  `ThemeSlot`, this app's own items. A slot with `role = UiRole.X` *is* that commons role under this
+  app's label and is stored in the role's key (`migrateSlotsToRoles()` moves older overrides at every
+  start). Everything the commons draws reads commons' `UiRole`s (`helpers/UiRoles.kt`). A new widget
+  gets a new slot in the same commit, and its shape is built in code.
+- **Left in XML, on purpose:** the launcher icon variants' grounds in `res/mipmap-anydpi-v26` and the
+  launcher foreground (the platform draws them), the home-screen widget's shape (the launcher draws
+  it; commons' `widget_round_background`), and the placeholder fill of vector icons (a mask, tinted in
+  code).
+- **The family's look is switched on at every start** — `seedFamilyLook()` in `App.onCreate`: dialog
+  frame, pill dialog buttons, the outlined switch and floating button (`BaseConfig.pillDialogButtons`).
+- **Menus:** `views/PillMenuItemView.kt` draws every popup row, swapped in through the app's copies of
+  AppCompat 1.7.1's `abc_popup_menu_item_layout.xml` and `abc_cascading_menu_item_layout.xml` (diff
+  them when AppCompat is upgraded). `helpers/MenuPills.kt` is the table of item id → icon, role, ›.
+  **A new menu item gets a line there.** `androidx/appcompat/view/menu/ForkMenuAccess.kt` sits in
+  AppCompat's package to read a package-private field.
+- **The UI page** (`activities/ThemeActivity.kt`) is a folding accordion with a draggable chip index:
+  `UiSection` (the keys are stored — never rename one), order and fold state in `Config.uiSectionOrder`
+  / `uiSectionsOpen`, exported with the colours. Action rows are pills (`addActionRow`), every row
+  has an icon (`RowIcon`, coloured by the menu icon roles), explanations are dim gold with a left rule.
+- **The Settings screen** gets its icons and its pills in `SettingsActivity.styleRows()`; a new row is
+  added there too.
+- A destructive confirmation passes `destructive = true` (`ConfirmationDialog`) or
+  `destructiveButton = AlertDialog.BUTTON_POSITIVE` (`setupDialogStuff`).
 
 ## Commit convention — no Claude attribution
 

@@ -17,11 +17,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.print.PrintAttributes
 import android.print.PrintManager
-import android.text.Spannable
-import android.text.SpannableString
 import android.text.method.ArrowKeyMovementMethod
 import android.text.method.LinkMovementMethod
-import android.text.style.ForegroundColorSpan
 import android.util.TypedValue
 import android.view.ActionMode
 import android.view.Gravity
@@ -34,7 +31,6 @@ import android.webkit.WebViewClient
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.ActionMenuView
 import androidx.core.net.toUri
 import androidx.viewpager.widget.ViewPager
@@ -46,8 +42,11 @@ import org.fossify.commons.dialogs.SecurityDialog
 import org.fossify.commons.extensions.appLaunched
 import org.fossify.commons.extensions.appLockManager
 import org.fossify.commons.extensions.applyColorFilter
+import org.fossify.commons.extensions.circleDrawable
+import org.fossify.commons.extensions.getColoredDrawableWithColor
+import org.fossify.commons.helpers.UiRole
+import org.fossify.commons.helpers.uiColor
 import org.fossify.commons.extensions.applyFontToViewRecursively
-import org.fossify.commons.extensions.baseConfig
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.checkWhatsNew
 import org.fossify.commons.extensions.clearBackgroundSpans
@@ -55,14 +54,11 @@ import org.fossify.commons.extensions.convertToBitmap
 import org.fossify.commons.extensions.deleteFile
 import org.fossify.commons.extensions.fadeIn
 import org.fossify.commons.extensions.fadeOut
-import org.fossify.commons.extensions.getContrastColor
 import org.fossify.commons.extensions.getCurrentFormattedDateTime
 import org.fossify.commons.extensions.getDocumentFile
 import org.fossify.commons.extensions.getFilenameFromContentUri
 import org.fossify.commons.extensions.getFilenameFromPath
 import org.fossify.commons.extensions.getProperBackgroundColor
-import org.fossify.commons.extensions.getProperPrimaryColor
-import org.fossify.commons.extensions.getProperStatusBarColor
 import org.fossify.commons.extensions.getRealPathFromURI
 import org.fossify.commons.extensions.handleDeletePasswordProtection
 import org.fossify.commons.extensions.hasPermission
@@ -112,7 +108,6 @@ import org.fossify.notes.dialogs.SortChecklistDialog
 import org.fossify.notes.extensions.checklistToPlainText
 import androidx.core.view.children
 import org.fossify.notes.extensions.ThemeSlot
-import org.fossify.notes.extensions.applyThemeFont
 import org.fossify.notes.extensions.applyThemeFontIfSet
 import org.fossify.notes.extensions.config
 import org.fossify.notes.extensions.themeColor
@@ -229,7 +224,7 @@ class MainActivity : SimpleActivity() {
             setGravity(Gravity.CENTER_VERTICAL)
             setNonPrimaryAlpha(0.4f)
             setTextColor(themeColor(ThemeSlot.TAB_TEXT))
-            tabIndicatorColor = getProperPrimaryColor()
+            tabIndicatorColor = themeColor(ThemeSlot.TAB_INDICATOR)
             applyFontToViewRecursively(this)
             // 白い熊 メモ UI: per-element font override for the tab titles.
             children.filterIsInstance<TextView>().forEach { it.applyThemeFontIfSet(ThemeSlot.TAB_TEXT) }
@@ -238,10 +233,11 @@ class MainActivity : SimpleActivity() {
 
         checkShortcuts()
 
-        binding.searchWrapper.setBackgroundColor(getProperStatusBarColor())
-        val contrastColor = getProperPrimaryColor().getContrastColor()
+        // the search bar's ground and icons are the commons' search roles (UI page → Bars)
+        binding.searchWrapper.setBackgroundColor(uiColor(UiRole.SEARCH_GROUND))
+        val searchIconColor = uiColor(UiRole.SEARCH_ICON)
         arrayListOf(searchPrevBtn, searchNextBtn, searchClearBtn).forEach {
-            it.applyColorFilter(contrastColor)
+            it.applyColorFilter(searchIconColor)
         }
 
         updateTopBarColors(binding.mainAppbar, getProperBackgroundColor())
@@ -301,31 +297,24 @@ class MainActivity : SimpleActivity() {
         styleTopBarMenu()
     }
 
-    // 白い熊 メモ UI: tint the top-right action + overflow ("hamburger") icons from MENU_ICON, and
-    // color the overflow menu items' text from MENU_TEXT. Re-applied on every menu refresh and once
-    // more after commons' updateTopBarColors (which repaints the overflow icon).
+    // 白い熊 メモ UI: tint the top-right action + overflow ("hamburger") icons from MENU_ICON. Re-applied on
+    // every menu refresh and once more after commons' updateTopBarColors (which repaints the overflow
+    // icon). The rows of the ⋮ menu are drawn by views/PillMenuItemView: their labels are the menu-label
+    // role, and their icons are recoloured there by what each row does.
     private fun styleTopBarMenu() {
         val iconColor = themeColor(ThemeSlot.MENU_ICON)
-        val menuTextColor = themeColor(ThemeSlot.MENU_TEXT)
         val toolbar = binding.mainToolbar
         toolbar.overflowIcon?.applyColorFilter(iconColor)
         val menu = toolbar.menu
         for (i in 0 until menu.size()) {
-            val item = menu.getItem(i)
-            item.icon?.applyColorFilter(iconColor)
-            item.title?.let { title ->
-                item.title = SpannableString(title).apply {
-                    setSpan(ForegroundColorSpan(menuTextColor), 0, length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                }
-            }
+            menu.getItem(i).icon?.applyColorFilter(iconColor)
         }
-        styleSettingsShortcut()
         setupOverflowLongTap()
     }
 
     // 白い熊 メモ UI: long-tap on the top-right overflow ("hamburger") button opens the UI page.
     // The overflow button is the only ImageView inside the toolbar's ActionMenuView (real action
-    // items are ActionMenuItemView text views, the 設定 shortcut is a custom layout), and it only
+    // items are ActionMenuItemView text views), and it only
     // exists after a layout pass — hence the post {}.
     private fun setupOverflowLongTap() {
         val toolbar = binding.mainToolbar
@@ -341,35 +330,7 @@ class MainActivity : SimpleActivity() {
         }
     }
 
-    // The 設定 double-button (top-bar action view): 設 opens the 白い熊 メモ UI page, 定 the regular
-    // Settings; the two characters touch but are independent tap targets.
-    private fun settingsShortcutView(): View? =
-        binding.mainToolbar.menu.findItem(R.id.settings_shortcut)?.actionView
-
-    private fun setupSettingsShortcut() {
-        val view = settingsShortcutView() ?: return
-        view.findViewById<View>(R.id.settings_shortcut_left)?.setOnClickListener {
-            startActivity(Intent(this, ThemeActivity::class.java))
-        }
-        view.findViewById<View>(R.id.settings_shortcut_right)?.setOnClickListener {
-            launchSettings()
-        }
-    }
-
-    // Colour + font the 設定 characters from the SETTINGS_BUTTON slot.
-    private fun styleSettingsShortcut() {
-        val view = settingsShortcutView() ?: return
-        val color = themeColor(ThemeSlot.SETTINGS_BUTTON)
-        listOf(R.id.settings_shortcut_left, R.id.settings_shortcut_right).forEach { id ->
-            view.findViewById<TextView>(id)?.apply {
-                setTextColor(color)
-                applyThemeFont(ThemeSlot.SETTINGS_BUTTON)
-            }
-        }
-    }
-
     private fun setupOptionsMenu() {
-        setupSettingsShortcut()
         binding.mainToolbar.setOnMenuItemClickListener { menuItem ->
             if (config.autosaveNotes && menuItem.itemId != R.id.undo && menuItem.itemId != R.id.redo) {
                 saveCurrentNote(false) {
@@ -396,6 +357,7 @@ class MainActivity : SimpleActivity() {
                 R.id.print -> fragment?.handleUnlocking { printText() }
                 R.id.delete_note -> fragment?.handleUnlocking { displayDeleteNotePrompt() }
                 R.id.more_apps_from_us -> launchMoreAppsFromUsIntent()
+                R.id.ui_settings -> startActivity(Intent(this, ThemeActivity::class.java))
                 R.id.settings -> launchSettings()
                 R.id.about -> launchAbout()
                 R.id.remove_done_items -> fragment?.handleUnlocking { removeDoneItems() }
@@ -495,7 +457,8 @@ class MainActivity : SimpleActivity() {
 
     @SuppressLint("NewApi")
     private fun checkShortcuts() {
-        val appIconColor = config.appIconColor
+        // the shortcuts' disc is the accent role (the stock launcher-icon colour is gone with Customize colors)
+        val appIconColor = uiColor(UiRole.ACCENT)
         if (config.lastHandledShortcutColor != appIconColor) {
             val newTextNote = getNewTextNoteShortcut(appIconColor)
             val newChecklist = getNewChecklistShortcut(appIconColor)
@@ -508,17 +471,21 @@ class MainActivity : SimpleActivity() {
         }
     }
 
+    // A shortcut's icon, built here so that no shape file names a colour: a disc in [discColor] (the accent
+    // role) under the glyph in the background role.
+    private fun shortcutIcon(glyphRes: Int, discColor: Int): LayerDrawable {
+        val glyph = resources.getColoredDrawableWithColor(glyphRes, uiColor(UiRole.BACKGROUND))
+        val margin = resources.getDimensionPixelSize(org.fossify.commons.R.dimen.medium_margin)
+        return LayerDrawable(arrayOf(circleDrawable(discColor), glyph)).apply {
+            setLayerInset(1, margin, margin, margin, margin)
+        }
+    }
+
     @SuppressLint("NewApi")
     private fun getNewTextNoteShortcut(appIconColor: Int): ShortcutInfo {
         val shortLabel = getString(R.string.text_note)
         val longLabel = getString(R.string.new_text_note)
-        val drawable = AppCompatResources.getDrawable(
-            this, org.fossify.commons.R.drawable.shortcut_plus
-        )
-
-        (drawable as LayerDrawable).findDrawableByLayerId(R.id.shortcut_plus_background)
-            .applyColorFilter(appIconColor)
-        val bmp = drawable.convertToBitmap()
+        val bmp = shortcutIcon(org.fossify.commons.R.drawable.ic_plus_vector, appIconColor).convertToBitmap()
 
         val intent = Intent(this, MainActivity::class.java)
         intent.action = Intent.ACTION_VIEW
@@ -535,10 +502,7 @@ class MainActivity : SimpleActivity() {
     private fun getNewChecklistShortcut(appIconColor: Int): ShortcutInfo {
         val shortLabel = getString(R.string.checklist)
         val longLabel = getString(R.string.new_checklist)
-        val drawable = AppCompatResources.getDrawable(this, R.drawable.shortcut_check)
-        (drawable as LayerDrawable).findDrawableByLayerId(R.id.shortcut_plus_background)
-            .applyColorFilter(appIconColor)
-        val bmp = drawable.convertToBitmap()
+        val bmp = shortcutIcon(org.fossify.commons.R.drawable.ic_check_vector, appIconColor).convertToBitmap()
 
         val intent = Intent(this, MainActivity::class.java)
         intent.action = Intent.ACTION_VIEW
@@ -723,7 +687,7 @@ class MainActivity : SimpleActivity() {
 
             if (text.isNotBlank() && text.length > 1) {
                 searchMatches = noteView.value.searchMatches(text)
-                noteView.highlightText(text, getProperPrimaryColor())
+                noteView.highlightText(text, themeColor(ThemeSlot.SEARCH_HIGHLIGHT))
             }
 
             currentTextFragment?.setTextWatcher()
@@ -1565,10 +1529,7 @@ class MainActivity : SimpleActivity() {
         val manager = getSystemService(ShortcutManager::class.java)
         if (manager.isRequestPinShortcutSupported) {
             val note = mCurrentNote
-            val drawable = AppCompatResources.getDrawable(this, R.drawable.shortcut_note)?.mutate()
-            val appIconColor = baseConfig.appIconColor
-            (drawable as LayerDrawable).findDrawableByLayerId(R.id.shortcut_plus_background)
-                .applyColorFilter(appIconColor)
+            val drawable = shortcutIcon(R.drawable.ic_shortcut_icon, uiColor(UiRole.ACCENT))
 
             val intent = Intent(this, SplashActivity::class.java)
             intent.action = Intent.ACTION_VIEW

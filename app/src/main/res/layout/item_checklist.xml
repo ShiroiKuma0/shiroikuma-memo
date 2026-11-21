@@ -5,10 +5,8 @@
     android:id="@+id/checklist_holder"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?attr/selectableItemBackground"
     android:clickable="true"
     android:focusable="true"
-    android:foreground="@drawable/selector"
     android:minHeight="@dimen/checklist_height"
     android:paddingStart="@dimen/normal_margin"
     android:paddingEnd="@dimen/small_margin">

@@ -1,5 +1,7 @@
 package org.fossify.notes.adapters
 
+import org.fossify.commons.extensions.rippleDrawable
+import org.fossify.commons.extensions.rowSelectorDrawable
 import android.annotation.SuppressLint
 import android.content.res.ColorStateList
 import android.graphics.Paint
@@ -29,7 +31,6 @@ import org.fossify.notes.extensions.applyThemeFontIfSet
 import org.fossify.notes.extensions.config
 import org.fossify.notes.extensions.getPercentageFontSize
 import org.fossify.notes.extensions.themeColor
-import org.fossify.notes.helpers.DONE_CHECKLIST_ITEM_ALPHA
 import org.fossify.notes.interfaces.TasksActionListener
 import org.fossify.notes.models.CompletedTasks
 import org.fossify.notes.models.NoteItem
@@ -158,6 +159,10 @@ class TasksAdapter(
 
     private fun getSelectedItems() = currentList.filterIsInstance<Task>().filter { selectedKeys.contains(it.id) }.toMutableList()
 
+    // A part of the list outside its item texts: its own role in the app, the widget's text colour in
+    // the widget preview (which builds this adapter without a listener).
+    private fun partColor(slot: ThemeSlot) = if (listener == null) textColor else activity.themeColor(slot)
+
     @SuppressLint("ClickableViewAccessibility")
     private fun setupView(view: View, task: Task, holder: ViewHolder) {
         val isSelected = selectedKeys.contains(task.id)
@@ -177,21 +182,23 @@ class TasksAdapter(
 
                 if (task.isDone) {
                     paintFlags = paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
-                    alpha = DONE_CHECKLIST_ITEM_ALPHA
                 } else {
                     paintFlags = paintFlags.removeBit(Paint.STRIKE_THRU_TEXT_FLAG)
-                    alpha = 1f
                 }
+                // full opacity either way: a done item is the done-item role, exactly as set
+                alpha = 1f
             }
 
             checklistCheckbox.isChecked = task.isDone
             checklistCheckbox.buttonTintList =
                 ColorStateList.valueOf(checklistCheckbox.context.themeColor(ThemeSlot.CHECKLIST_CHECKBOX))
+            // the row's ground: nothing at rest, the selected-row role when selected, a ripple when pressed
+            if (checklistHolder.background == null) checklistHolder.background = activity.rowSelectorDrawable()
             checklistHolder.isSelected = isSelected
 
             val canMoveTask = !task.isDone || !activity.config.moveDoneChecklistItems
             checklistDragHandle.beVisibleIf(beVisible = canMoveTask && selectedKeys.isNotEmpty())
-            checklistDragHandle.applyColorFilter(textColor)
+            checklistDragHandle.applyColorFilter(partColor(ThemeSlot.CHECKLIST_HANDLE))
             checklistDragHandle.setOnTouchListener { _, event ->
                 if (event.action == MotionEvent.ACTION_DOWN) {
                     startReorderDragListener.requestDrag(holder)
@@ -203,13 +210,14 @@ class TasksAdapter(
 
     private fun setupCompletedTasks(view: View, completedTasks: CompletedTasks) {
         ItemCheckedTasksBinding.bind(view).apply {
+            if (root.background == null) root.background = activity.rippleDrawable()
             numCheckedItems.apply {
                 text = resources.getQuantityString(R.plurals.num_checked_items, completedTasks.tasks.size, completedTasks.tasks.size)
-                setTextColor(textColor)
+                setTextColor(partColor(ThemeSlot.CHECKLIST_GROUP))
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, context.getPercentageFontSize())
             }
 
-            expandCollapseIcon.applyColorFilter(textColor)
+            expandCollapseIcon.applyColorFilter(partColor(ThemeSlot.CHECKLIST_GROUP))
             expandCollapseIcon.setImageResource(
                 if (completedTasks.expanded) {
                     org.fossify.commons.R.drawable.ic_chevron_up_vector

@@ -1,5 +1,8 @@
 package org.fossify.notes.dialogs
 
+import org.fossify.commons.extensions.pillDrawable
+import org.fossify.commons.helpers.UiRole
+import org.fossify.commons.helpers.uiColor
 import android.app.Activity
 import android.content.DialogInterface.BUTTON_POSITIVE
 import android.view.KeyEvent
@@ -7,7 +10,6 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.appcompat.widget.AppCompatEditText
 import org.fossify.commons.extensions.*
-import org.fossify.commons.helpers.DARK_GREY
 import org.fossify.commons.helpers.SORT_BY_CUSTOM
 import org.fossify.notes.R
 import org.fossify.notes.databinding.DialogNewChecklistItemBinding
@@ -26,14 +28,12 @@ class NewChecklistItemDialog(
 
     init {
         addNewEditText()
-        val plusTextColor = if (activity.isWhiteTheme()) {
-            DARK_GREY
-        } else {
-            activity.getProperPrimaryColor().getContrastColor()
-        }
-
         binding.apply {
-            addItem.applyColorFilter(plusTextColor)
+            // "one more line": an outlined pill around the plus, never a filled slab
+            addItem.applyColorFilter(activity.uiColor(UiRole.BUTTON_TEXT))
+            addItem.background = activity.pillDrawable(
+                activity.uiColor(UiRole.BUTTON_FRAME), activity.uiColor(UiRole.DIALOG_GROUND), main = false,
+            )
             addItem.setOnClickListener {
                 addNewEditText()
             }

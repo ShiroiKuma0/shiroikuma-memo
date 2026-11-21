@@ -52,7 +52,6 @@
                 android:layout_height="wrap_content"
                 android:layout_below="@+id/notes_picker_label"
                 android:layout_marginStart="@dimen/activity_margin"
-                android:background="@drawable/button_background"
                 android:padding="@dimen/normal_margin"
                 android:text="@string/general_note" />
 
@@ -110,8 +109,7 @@
             android:layout_alignTop="@+id/config_bg_color"
             android:layout_alignBottom="@+id/config_bg_color"
             android:layout_marginStart="@dimen/medium_margin"
-            android:layout_toEndOf="@+id/config_bg_color"
-            android:background="@drawable/widget_config_seekbar_background">
+            android:layout_toEndOf="@+id/config_bg_color">
 
             <org.fossify.commons.views.MySeekBar
                 android:id="@+id/config_bg_seekbar"

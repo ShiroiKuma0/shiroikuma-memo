@@ -1,5 +1,13 @@
 package org.fossify.notes.adapters
 
+import org.fossify.commons.extensions.circleRippleDrawable
+import android.content.res.ColorStateList
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
+import org.fossify.commons.helpers.UiRole
+import org.fossify.commons.helpers.uiColor
+import org.fossify.notes.extensions.ThemeSlot
+import org.fossify.notes.extensions.themeColor
 import android.content.Context
 import android.graphics.Color
 import android.text.SpannableString
@@ -21,6 +29,8 @@ import org.fossify.notes.extensions.config
 import org.fossify.notes.models.Note
 import org.fossify.notes.models.NoteType
 import org.fossify.notes.models.Task
+
+private const val CARD_RADIUS_DP = 12f
 
 class OpenNoteAdapter(
     activity: BaseSimpleActivity,
@@ -66,21 +76,26 @@ class OpenNoteAdapter(
             root.setupCard()
             openNoteItemTitle.apply {
                 text = note.title
-                setTextColor(properPrimaryColor)
+                setTextColor(activity.themeColor(ThemeSlot.PICKER_TITLE))
             }
 
             val formattedText = note.getFormattedValue(root.context)
             openNoteItemText.beGoneIf(formattedText.isNullOrBlank() || note.isLocked())
             iconLock.beVisibleIf(note.isLocked())
-            iconLock.setImageDrawable(activity.resources.getColoredDrawableWithColor(org.fossify.commons.R.drawable.ic_lock_vector, properPrimaryColor))
+            iconLock.setImageDrawable(
+                activity.resources.getColoredDrawableWithColor(
+                    org.fossify.commons.R.drawable.ic_lock_vector, activity.themeColor(ThemeSlot.MENU_ICON_LOCK),
+                )
+            )
             openNoteItemText.apply {
                 text = formattedText
-                setTextColor(textColor)
+                setTextColor(activity.themeColor(ThemeSlot.PICKER_TEXT))
             }
 
             openNoteItemIcon.apply {
                 beVisibleIf(note.path.isNotEmpty())
-                applyColorFilter(textColor)
+                applyColorFilter(activity.themeColor(ThemeSlot.MENU_ICON_OPEN))
+                if (background == null) background = activity.circleRippleDrawable()
                 tooltipText = context.getString(R.string.this_note_is_linked)
 
                 setOnClickListener {
@@ -90,25 +105,20 @@ class OpenNoteAdapter(
         }
     }
 
+    // A card per note: nothing filled, a thin frame in the picker-frame role, the pressed-row ripple inside.
     private fun View.setupCard() {
-        if (context.isBlackAndWhiteTheme()) {
-            setBackgroundResource(org.fossify.commons.R.drawable.black_dialog_background)
-        } else {
-            val cardBackgroundColor = if (backgroundColor == Color.BLACK) {
-                Color.WHITE
-            } else {
-                Color.BLACK
-            }
-
-            val cardBackground = if (context.isDynamicTheme()) {
-                org.fossify.commons.R.drawable.dialog_you_background
-            } else {
-                org.fossify.commons.R.drawable.dialog_bg
-            }
-
-            background =
-                activity.resources.getColoredDrawableWithColor(cardBackground, cardBackgroundColor, LOWER_ALPHA_INT)
+        val density = resources.displayMetrics.density
+        val radius = CARD_RADIUS_DP * density
+        val frame = GradientDrawable().apply {
+            cornerRadius = radius
+            setColor(Color.TRANSPARENT)
+            setStroke(density.toInt().coerceAtLeast(1), context.themeColor(ThemeSlot.PICKER_FRAME))
         }
+        val mask = GradientDrawable().apply {
+            cornerRadius = radius
+            setColor(context.uiColor(UiRole.ACCENT))
+        }
+        background = RippleDrawable(ColorStateList.valueOf(context.uiColor(UiRole.LIST_PRESSED)), frame, mask)
     }
 
     private fun Note.getFormattedValue(context: Context): CharSequence? {

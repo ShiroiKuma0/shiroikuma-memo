@@ -58,7 +58,7 @@ A 設定 double-button sits in the main top bar: **設** opens the 白い熊 メ
 
 ## 🔓 No nags
 
-Built against a patched Fossify Commons (`6.1.6-sk1`) with the "fake version" / sideloading checks removed — no modded-app dialog, and "Customize colors" works even though the app id isn't `org.fossify.*`.
+Built against a patched Fossify Commons (`6.1.6-sk19`) with the "fake version" / sideloading checks removed — no modded-app dialog, and "Customize colors" works even though the app id isn't `org.fossify.*`.
 
 ## Built on Fossify Notes
 
@@ -69,8 +69,8 @@ A fork of [Fossify Notes](https://github.com/FossifyOrg/Notes) (app id `shiroiku
 ```bash
 git clone git@github.com:ShiroiKuma0/shiroikuma-memo.git
 cd shiroikuma-memo
-# needs JDK 17+ and the Android SDK; publish the patched commons 6.1.6-sk1 to mavenLocal first
+# needs JDK 17+ and the Android SDK; publish the patched commons 6.1.6-sk19 to mavenLocal first
 ./gradlew buildFoss   # signed foss release → ~/tmp/shiroikuma-memo_<version>_arm64-v8a.apk
 ```
 
-Versioning: `<upstream version>+<fork build>` (e.g. `1.7.0+16`), versionCode `upstream*10000+build`.
+Versioning: `<upstream version>+<fork build>` with the build counter zero-padded to three digits (e.g. `1.7.0+017`), so builds sort in order; versionCode `upstream*10000+build`.
