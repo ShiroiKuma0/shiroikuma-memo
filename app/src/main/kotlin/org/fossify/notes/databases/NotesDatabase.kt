@@ -8,6 +8,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import org.fossify.commons.helpers.PROTECTION_NONE
 import org.fossify.notes.R
+import org.fossify.notes.extensions.config
 import org.fossify.notes.helpers.DEFAULT_WIDGET_TEXT_COLOR
 import org.fossify.notes.interfaces.NotesDao
 import org.fossify.notes.interfaces.WidgetsDao
@@ -28,7 +29,8 @@ abstract class NotesDatabase : RoomDatabase() {
         private var defaultWidgetBgColor = 0
 
         fun getInstance(context: Context): NotesDatabase {
-            defaultWidgetBgColor = context.resources.getColor(org.fossify.commons.R.color.default_widget_bg_color)
+            // a new widget starts on the widget ground the commons derives from the background role
+            defaultWidgetBgColor = context.config.widgetBgColor
             if (db == null) {
                 synchronized(NotesDatabase::class) {
                     if (db == null) {

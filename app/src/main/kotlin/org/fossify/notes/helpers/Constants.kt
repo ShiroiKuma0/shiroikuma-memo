@@ -1,6 +1,5 @@
 package org.fossify.notes.helpers
 
-import android.graphics.Color
 import org.fossify.notes.BuildConfig
 import org.joda.time.DateTime
 
@@ -19,8 +18,8 @@ const val ALL_WIDGET_IDS = "all_widget_ids"
 const val THEME_V1_SEEDED = "theme_v1_seeded"
 const val PURE_YELLOW_MIGRATED = "pure_yellow_migrated"
 const val THEME_UNSET = Int.MIN_VALUE // a slot with this stored value follows its inherited default
-const val PALETTE_BLACK = 0xFF000000.toInt()
-const val PALETTE_YELLOW = 0xFFFFFF00.toInt()
+const val UI_SECTION_ORDER = "ui_section_order" // the UI page's sections, in 白い熊's order
+const val UI_SECTIONS_OPEN = "ui_sections_open" // the UI page's sections left unfolded
 const val FONT_FAMILY_PREFIX = "font_family_" // String, "" = system/global default
 const val FONT_WEIGHT_PREFIX = "font_weight_" // Int, 0 = default, else 100..900
 const val FONT_SIZE_PREFIX = "font_size_"     // Int sp, 0 = default
@@ -30,7 +29,8 @@ const val SHORTCUT_NEW_TEXT_NOTE = "shortcut_new_text_note"
 const val SHORTCUT_NEW_CHECKLIST = "shortcut_new_checklist"
 const val NEW_TEXT_NOTE = "new_text_note"
 const val NEW_CHECKLIST = "new_checklist"
-val DEFAULT_WIDGET_TEXT_COLOR = Color.parseColor("#FFF57C00")
+// A home-screen widget's text until its own colour is read: the family yellow, written once in the commons.
+const val DEFAULT_WIDGET_TEXT_COLOR = org.fossify.commons.helpers.FAMILY_YELLOW
 
 // shared preferences
 const val CURRENT_NOTE_ID = "current_note_id"

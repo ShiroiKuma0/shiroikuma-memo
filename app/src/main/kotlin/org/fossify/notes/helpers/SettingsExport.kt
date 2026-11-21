@@ -14,6 +14,7 @@ import org.fossify.commons.helpers.BACKGROUND_COLOR
 import org.fossify.commons.helpers.COLOR_PICKER_RECENT_COLORS
 import org.fossify.commons.helpers.FontHelper
 import org.fossify.commons.helpers.IS_SYSTEM_THEME_ENABLED
+import org.fossify.commons.helpers.UI_ROLE_PREFIX
 import org.fossify.commons.helpers.LAST_VERSION
 import org.fossify.commons.helpers.PRIMARY_COLOR
 import org.fossify.commons.helpers.PROTECTION_NONE
@@ -122,6 +123,9 @@ object SettingsExport {
         WIDGET_BG_COLOR, WIDGET_TEXT_COLOR, COLOR_PICKER_RECENT_COLORS, PURE_YELLOW_MIGRATED,
     )
 
+    // Theme-slot overrides, the commons colour roles, and the UI page's section order and fold state.
+    private val COLOR_PREFIXES = listOf("theme_", UI_ROLE_PREFIX, "ui_section")
+
     private val FONT_PREFIXES = listOf(FONT_FAMILY_PREFIX, FONT_WEIGHT_PREFIX, FONT_SIZE_PREFIX)
 
     // Device-local / identity keys that must never travel between installs — including the automation
@@ -140,7 +144,7 @@ object SettingsExport {
     private fun categoryOf(key: String): Cat? = when {
         isExcluded(key) -> null
         FONT_PREFIXES.any { key.startsWith(it) } -> Cat.FONTS
-        key in COLOR_KEYS || key.startsWith("theme_") -> Cat.COLORS
+        key in COLOR_KEYS || COLOR_PREFIXES.any { key.startsWith(it) } -> Cat.COLORS
         else -> Cat.APP_SETTINGS
     }
 

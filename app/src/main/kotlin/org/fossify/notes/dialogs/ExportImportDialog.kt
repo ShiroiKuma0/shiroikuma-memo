@@ -19,24 +19,27 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.widget.NestedScrollView
-import org.fossify.commons.extensions.getProperBackgroundColor
-import org.fossify.commons.extensions.getProperPrimaryColor
-import org.fossify.commons.extensions.getProperTextColor
+import org.fossify.commons.extensions.checkedStates
+import org.fossify.commons.extensions.pillDrawable
+import org.fossify.commons.extensions.rippleDrawable
 import org.fossify.commons.extensions.toast
+import org.fossify.commons.helpers.UiRole
 import org.fossify.commons.helpers.ensureBackgroundThread
+import org.fossify.commons.helpers.uiColor
 import org.fossify.notes.R
+import org.fossify.notes.extensions.ThemeSlot
+import org.fossify.notes.extensions.themeColor
 import org.fossify.notes.helpers.SettingsExport
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// Shared styling for the Export/Import panel and its info dialogs: black (background-colour) boxes
-// with a yellow (accent) border, and ArcaneChat-style round pill buttons.
+// Shared styling for the Export/Import panel and its info dialogs, all from colour roles: a box in the
+// dialog ground inside the dialog frame, and the family's outlined pill buttons — the main action of a
+// box thick and bold, every other thin.
 private const val BOX_RADIUS_DP = 16
 private const val DIR_RADIUS_DP = 10
-private const val PILL_RADIUS_DP = 100 // > half the button height → a pill
 private const val BORDER_DP = 2f
-private const val PILL_STROKE_DP = 1.5f
 private const val TITLE_SP = 18f
 private const val INFO_TITLE_SP = 19f
 private const val DESC_SP = 13f
@@ -54,10 +57,6 @@ private const val GAP = 8
 private const val PAD_TINY = 6
 private const val PILL_PAD_V = 10
 private const val CHECK_PAD_V = 7
-private const val DESC_ALPHA = 0.85f
-private const val STATUS_ALPHA = 0.8f
-private const val DIVIDER_ALPHA = 0.4f
-private const val WARN_COLOR = 0xFFFF5252.toInt()
 private const val FLASH_DISMISS_MS = 1400L
 private const val FLASH_PAD_H = 24
 private const val FLASH_PAD_V = 14
@@ -85,16 +84,16 @@ private fun Context.eximText(value: String, sizeSp: Float, color: Int, bold: Boo
         }
     }
 
-/** An ArcaneChat-style round pill outline button: fully rounded ends, accent border and text. */
-private fun Context.eximPillButton(label: String, accent: Int, fill: Int) = Button(this).apply {
+/** A dialog button as the family's outlined pill: [main] is the box's main action — thick frame, bold. */
+private fun Context.eximPillButton(label: String, main: Boolean = false) = Button(this).apply {
     text = label
     isAllCaps = false
-    setTextColor(accent)
-    background = GradientDrawable().apply {
-        cornerRadius = dpF(PILL_RADIUS_DP.toFloat())
-        setColor(fill)
-        setStroke(dp(PILL_STROKE_DP.toInt()), accent)
+    setTextColor(uiColor(UiRole.DIALOG_BUTTON_TEXT))
+    if (main) {
+        setTypeface(typeface, Typeface.BOLD)
     }
+    backgroundTintList = null
+    background = pillDrawable(uiColor(UiRole.DIALOG_BUTTON_FRAME), uiColor(UiRole.DIALOG_BUTTON_GROUND), main)
     stateListAnimator = null
     minWidth = 0
     minimumWidth = 0
@@ -123,11 +122,14 @@ class ExportImportDialog(
     private val onExport: (Set<SettingsExport.Cat>) -> Unit,
     private val onImport: (Set<SettingsExport.Cat>) -> Unit,
 ) {
-    private val accent = activity.getProperPrimaryColor()
-    private val fill = activity.getProperBackgroundColor()
-    private val textColor = activity.getProperTextColor()
+    private val accent = activity.uiColor(UiRole.DIALOG_FRAME)
+    private val fill = activity.uiColor(UiRole.DIALOG_GROUND)
+    private val titleColor = activity.uiColor(UiRole.DIALOG_TITLE)
+    private val textColor = activity.uiColor(UiRole.DIALOG_TEXT)
+    private val noteColor = activity.themeColor(ThemeSlot.SETTINGS_NOTE)
+    private val warnColor = activity.themeColor(ThemeSlot.STATUS_WARNING)
     private val checks = LinkedHashMap<SettingsExport.Cat, CheckBox>()
-    private var folderValueTv: TextView? = null
+    private var directoryValueTv: TextView? = null
     private var statusTv: TextView? = null
     private val dialog: AlertDialog
 
@@ -142,14 +144,13 @@ class ExportImportDialog(
     fun refreshStatus() {
         val dirName = SettingsExport.exportDir(activity)?.name
             ?: SettingsExport.getDirUri(activity)?.lastPathSegment
-        folderValueTv?.text = dirName ?: activity.getString(R.string.eim_dir_unset)
-        folderValueTv?.setTextColor(if (dirName == null) WARN_COLOR else textColor)
+        directoryValueTv?.text = dirName ?: activity.getString(R.string.eim_dir_unset)
+        directoryValueTv?.setTextColor(if (dirName == null) warnColor else textColor)
         ensureBackgroundThread {
             val status = latestExportStatus(activity)
             activity.runOnUiThread {
                 statusTv?.text = status.first
-                statusTv?.setTextColor(if (status.second) WARN_COLOR else textColor)
-                statusTv?.alpha = if (status.second) 1f else STATUS_ALPHA
+                statusTv?.setTextColor(if (status.second) warnColor else noteColor)
             }
         }
     }
@@ -162,12 +163,11 @@ class ExportImportDialog(
             background = ctx.eximBorder(BOX_RADIUS_DP, accent, fill)
         }
 
-        box.addView(ctx.eximText(ctx.getString(R.string.eim_dialog_title), TITLE_SP, accent, bold = true).apply {
+        box.addView(ctx.eximText(ctx.getString(R.string.eim_dialog_title), TITLE_SP, titleColor, bold = true).apply {
             gravity = Gravity.CENTER
             setPadding(0, ctx.dp(2), 0, ctx.dp(PAD_TINY))
         })
-        box.addView(ctx.eximText(ctx.getString(R.string.eim_dialog_desc), DESC_SP, textColor).apply {
-            alpha = DESC_ALPHA
+        box.addView(ctx.eximText(ctx.getString(R.string.eim_dialog_desc), DESC_SP, noteColor).apply {
             setPadding(0, 0, 0, ctx.dp(PAD_XS))
         })
 
@@ -175,7 +175,7 @@ class ExportImportDialog(
             it.topMargin = ctx.dp(PAD_TINY)
             it.bottomMargin = ctx.dp(PAD_TINY)
         })
-        val status = ctx.eximText("", STATUS_SP, textColor).apply {
+        val status = ctx.eximText("", STATUS_SP, noteColor).apply {
             setPadding(ctx.dp(2), 0, 0, ctx.dp(PAD_XXS))
         }
         statusTv = status
@@ -194,13 +194,20 @@ class ExportImportDialog(
             orientation = LinearLayout.VERTICAL
             isClickable = true
             setPadding(ctx.dp(PAD_S), ctx.dp(PAD_XS), ctx.dp(PAD_S), ctx.dp(PAD_XS))
-            background = ctx.eximBorder(DIR_RADIUS_DP, accent, fill)
+            // it opens the directory picker: the button frame, with the pressed-row ripple inside
+            background = ctx.rippleDrawable(
+                DIR_RADIUS_DP.toFloat(),
+            ).let { ripple ->
+                android.graphics.drawable.LayerDrawable(
+                    arrayOf(ctx.eximBorder(DIR_RADIUS_DP, ctx.uiColor(UiRole.DIALOG_BUTTON_FRAME), fill), ripple)
+                )
+            }
             setOnClickListener { onPickDir() }
         }
-        dirBox.addView(ctx.eximText(ctx.getString(R.string.eim_dir_caption), CAPTION_SP, accent))
-        val folderValue = ctx.eximText("", VALUE_SP, textColor, bold = true)
-        folderValueTv = folderValue
-        dirBox.addView(folderValue)
+        dirBox.addView(ctx.eximText(ctx.getString(R.string.eim_dir_caption) + "  ›", CAPTION_SP, noteColor))
+        val directoryValue = ctx.eximText("", VALUE_SP, textColor, bold = true)
+        directoryValueTv = directoryValue
+        dirBox.addView(directoryValue)
         return dirBox
     }
 
@@ -220,7 +227,7 @@ class ExportImportDialog(
         return holder
     }
 
-    // ArcaneChat-style dialog button row: round pills, Cancel alone left, Import/Export right.
+    // The button row: outlined pills, Cancel alone left, Import and — the panel's main action — Export right.
     private fun buildButtonRow(): LinearLayout {
         val ctx = activity
         val buttons = LinearLayout(ctx).apply {
@@ -228,15 +235,15 @@ class ExportImportDialog(
             gravity = Gravity.CENTER_VERTICAL
             setPadding(0, ctx.dp(PAD_S), 0, 0)
         }
-        buttons.addView(ctx.eximPillButton(ctx.getString(org.fossify.commons.R.string.cancel), accent, fill).apply {
+        buttons.addView(ctx.eximPillButton(ctx.getString(org.fossify.commons.R.string.cancel)).apply {
             setOnClickListener { dismiss() }
         })
         buttons.addView(View(ctx), LinearLayout.LayoutParams(0, 0, 1f))
-        buttons.addView(ctx.eximPillButton(ctx.getString(R.string.eim_import), accent, fill).apply {
+        buttons.addView(ctx.eximPillButton(ctx.getString(R.string.eim_import)).apply {
             layoutParams = wrapParams().also { it.marginEnd = ctx.dp(GAP) }
             setOnClickListener { withSelection(onImport) }
         })
-        buttons.addView(ctx.eximPillButton(ctx.getString(R.string.eim_export), accent, fill).apply {
+        buttons.addView(ctx.eximPillButton(ctx.getString(R.string.eim_export), main = true).apply {
             setOnClickListener { withSelection(onExport) }
         })
         return buttons
@@ -253,19 +260,18 @@ class ExportImportDialog(
 
     private fun checkbox(label: String, bold: Boolean = false): CheckBox = CheckBox(activity).apply {
         text = label
-        setTextColor(textColor)
+        setTextColor(activity.uiColor(UiRole.CHECK_LABEL))
         setTextSize(TypedValue.COMPLEX_UNIT_SP, CHECK_SP)
         if (bold) {
             typeface = Typeface.DEFAULT_BOLD
         }
-        buttonTintList = android.content.res.ColorStateList.valueOf(accent)
+        buttonTintList = checkedStates(activity.uiColor(UiRole.CHECK_OFF), activity.uiColor(UiRole.CHECK_ON))
         setPadding(activity.dp(GAP), activity.dp(CHECK_PAD_V), 0, activity.dp(CHECK_PAD_V))
     }
 
     private fun divider(): View = View(activity).apply {
         layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1)
-        setBackgroundColor(accent)
-        alpha = DIVIDER_ALPHA
+        setBackgroundColor(activity.uiColor(UiRole.LIST_DIVIDER))
     }
 
     private fun matchWrapParams() = LinearLayout.LayoutParams(
@@ -278,13 +284,13 @@ class ExportImportDialog(
 }
 
 /**
- * A transient, toast-like "Exporting…" / "Importing…" flash in the export/import look: black
- * (background-colour) box, yellow (accent) border and text. Non-modal, auto-dismisses; the caller
+ * A transient, toast-like "Exporting…" / "Importing…" flash, drawn from the toast roles (ground, frame,
+ * text). Non-modal, auto-dismisses; the caller
  * may dismiss it earlier when the result arrives.
  */
 fun showEximFlash(activity: Activity, textRes: Int): AlertDialog {
-    val accent = activity.getProperPrimaryColor()
-    val fill = activity.getProperBackgroundColor()
+    val accent = activity.uiColor(UiRole.TOAST_FRAME)
+    val fill = activity.uiColor(UiRole.TOAST_GROUND)
     val box = LinearLayout(activity).apply {
         orientation = LinearLayout.VERTICAL
         setPadding(
@@ -292,7 +298,8 @@ fun showEximFlash(activity: Activity, textRes: Int): AlertDialog {
             activity.dp(FLASH_PAD_H), activity.dp(FLASH_PAD_V),
         )
         background = activity.eximBorder(BOX_RADIUS_DP, accent, fill)
-        addView(activity.eximText(activity.getString(textRes), FLASH_SP, accent, bold = true))
+        val textColor = activity.uiColor(UiRole.TOAST_TEXT)
+        addView(activity.eximText(activity.getString(textRes), FLASH_SP, textColor, bold = true))
     }
     val dialog = AlertDialog.Builder(activity)
         .setView(box)
@@ -323,7 +330,7 @@ fun latestExportStatus(context: Context): Pair<String, Boolean> {
     return context.getString(R.string.eim_last, ts) to false
 }
 
-/** Black/yellow bordered "Export finished" info dialog; OK acknowledges and closes the whole chain. */
+/** The framed "Export finished" info dialog; OK acknowledges and closes the whole chain. */
 fun showExportDoneDialog(activity: Activity, fileName: String, onAck: () -> Unit) {
     showEximInfoDialog(
         activity = activity,
@@ -352,15 +359,15 @@ private fun showEximInfoDialog(
     body: String,
     buttons: List<Pair<String, () -> Unit>>,
 ) {
-    val accent = activity.getProperPrimaryColor()
-    val fill = activity.getProperBackgroundColor()
+    val accent = activity.uiColor(UiRole.DIALOG_FRAME)
+    val fill = activity.uiColor(UiRole.DIALOG_GROUND)
     val box = LinearLayout(activity).apply {
         orientation = LinearLayout.VERTICAL
         setPadding(activity.dp(PAD_XL), activity.dp(PAD_L), activity.dp(PAD_XL), activity.dp(PAD_M))
         background = activity.eximBorder(BOX_RADIUS_DP, accent, fill)
     }
-    box.addView(activity.eximText(title, INFO_TITLE_SP, accent, bold = true))
-    box.addView(activity.eximText(body, STATUS_SP, accent).apply {
+    box.addView(activity.eximText(title, INFO_TITLE_SP, activity.uiColor(UiRole.DIALOG_TITLE), bold = true))
+    box.addView(activity.eximText(body, STATUS_SP, activity.uiColor(UiRole.DIALOG_TEXT)).apply {
         setPadding(0, activity.dp(PAD_XS), 0, 0)
     })
 
@@ -371,7 +378,8 @@ private fun showEximInfoDialog(
     }
     lateinit var dialog: AlertDialog
     buttons.forEachIndexed { index, (label, action) ->
-        buttonRow.addView(activity.eximPillButton(label, accent, fill).apply {
+        // the last button is the one that carries on (OK, Restart now): the main pill
+        buttonRow.addView(activity.eximPillButton(label, main = index == buttons.lastIndex).apply {
             if (index < buttons.lastIndex) {
                 layoutParams = LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT

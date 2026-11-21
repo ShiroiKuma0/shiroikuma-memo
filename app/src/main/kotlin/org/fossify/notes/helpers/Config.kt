@@ -115,6 +115,16 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(PURE_YELLOW_MIGRATED, false)
         set(value) = prefs.edit().putBoolean(PURE_YELLOW_MIGRATED, value).apply()
 
+    // The UI page: the order 白い熊 dragged its sections into (keys, comma-separated; "" = the built order)
+    // and the sections left open (every section is folded on a fresh install).
+    var uiSectionOrder: String
+        get() = prefs.getString(UI_SECTION_ORDER, "")!!
+        set(value) = prefs.edit().putString(UI_SECTION_ORDER, value).apply()
+
+    var uiSectionsOpen: Set<String>
+        get() = prefs.getString(UI_SECTIONS_OPEN, "")!!.split(',').filter { it.isNotEmpty() }.toSet()
+        set(value) = prefs.edit().putString(UI_SECTIONS_OPEN, value.joinToString(",")).apply()
+
     fun getThemeOverride(key: String): Int = prefs.getInt(key, THEME_UNSET)
 
     fun setThemeOverride(key: String, color: Int) = prefs.edit().putInt(key, color).apply()

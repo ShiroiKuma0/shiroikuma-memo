@@ -23,9 +23,13 @@ fun hasSigningVars(): Boolean {
             && providers.environmentVariable("SIGNING_STORE_PASSWORD").orNull != null
 }
 
-val forkVersionName = "${project.property("VERSION_NAME")}+${project.property("BUILD_NUMBER")}"
-val forkVersionCode = project.property("VERSION_CODE").toString().toInt() * 10000 +
-        project.property("BUILD_NUMBER").toString().toInt()
+// The fork build counter is zero-padded to three digits in the version NAME, so APK filenames, git
+// tags and release titles all sort in build order rather than lexically (+002 before +010). The
+// padding is presentation only: gradle.properties keeps the bare integer that buildFoss increments,
+// and versionCode stays arithmetic.
+val forkBuildNumber = project.property("BUILD_NUMBER").toString().toInt()
+val forkVersionName = "${project.property("VERSION_NAME")}+${"%03d".format(forkBuildNumber)}"
+val forkVersionCode = project.property("VERSION_CODE").toString().toInt() * 10000 + forkBuildNumber
 
 base {
     archivesName = "shiroikuma-memo_${forkVersionName}_arm64-v8a"

@@ -4,7 +4,10 @@ import android.app.AlarmManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.graphics.Typeface
 import android.view.Menu
+import android.view.View
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.text.TextUtilsCompat
 import androidx.core.view.ViewCompat
@@ -17,7 +20,9 @@ import org.fossify.commons.dialogs.SecurityDialog
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
+import org.fossify.commons.extensions.getColoredDrawableWithColor
 import org.fossify.commons.extensions.getProperPrimaryColor
+import org.fossify.commons.extensions.pillDrawable
 import org.fossify.commons.extensions.openRequestExactAlarmSettings
 import org.fossify.commons.extensions.showErrorToast
 import org.fossify.commons.extensions.toast
@@ -27,6 +32,8 @@ import org.fossify.commons.helpers.IS_CUSTOMIZING_COLORS
 import org.fossify.commons.helpers.NavigationIcon
 import org.fossify.commons.helpers.PROTECTION_FINGERPRINT
 import org.fossify.commons.helpers.SHOW_ALL_TABS
+import org.fossify.commons.helpers.UiRole
+import org.fossify.commons.helpers.uiColor
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isQPlus
 import org.fossify.commons.helpers.isRPlus
@@ -39,7 +46,9 @@ import org.fossify.notes.databinding.ActivitySettingsBinding
 import org.fossify.notes.dialogs.ExportNotesDialog
 import org.fossify.notes.dialogs.ManageAutoBackupsDialog
 import org.fossify.notes.extensions.cancelScheduledAutomaticBackup
+import org.fossify.notes.extensions.ThemeSlot
 import org.fossify.notes.extensions.config
+import org.fossify.notes.extensions.themeColor
 import org.fossify.notes.extensions.requestUnlockNotes
 import org.fossify.notes.extensions.scheduleNextAutomaticBackup
 import org.fossify.notes.extensions.updateWidgets
@@ -63,7 +72,15 @@ import org.fossify.notes.helpers.NotesHelper
 import org.fossify.notes.models.Note
 import java.util.Locale
 import kotlin.system.exitProcess
+import org.fossify.commons.R as CR
 
+private const val ROW_ICON_DP = 20
+private const val ROW_ICON_GAP_DP = 10
+private const val PILL_PAD_H_DP = 18
+private const val PILL_PAD_V_DP = 9
+private const val PILL_ROW_PAD_DP = 6
+
+@Suppress("TooManyFunctions")
 class SettingsActivity : SimpleActivity() {
     private val notesFileType = "application/json"
     private val notesImportFileTypes = buildList {
@@ -89,7 +106,6 @@ class SettingsActivity : SimpleActivity() {
         setupTopAppBar(binding.settingsAppbar, NavigationIcon.Arrow)
 
         setupShiroikumaUi()
-        setupCustomizeColors()
         setupUseEnglish()
         setupLanguage()
         setupAutosaveNotes()
@@ -126,6 +142,79 @@ class SettingsActivity : SimpleActivity() {
         ).forEach {
             it.setTextColor(getProperPrimaryColor())
         }
+        styleRows()
+    }
+
+    // The black-yellow look on this screen: every row carries an icon coloured by what the row does (the
+    // menu icon roles), and a row that opens something is an outlined pill around its label with a › —
+    // the way to the UI page being this screen's one thick pill. Switch and value rows stay plain.
+    private fun styleRows() {
+        val view = ThemeSlot.MENU_ICON_VIEW
+        val write = ThemeSlot.MENU_ICON_WRITE
+        val open = ThemeSlot.MENU_ICON_OPEN
+        val share = ThemeSlot.MENU_ICON_SHARE
+        val lock = ThemeSlot.MENU_ICON_LOCK
+        binding.apply {
+            settingsShiroikumaUiLabel.pillRow(R.drawable.ic_palette_vector, view, main = true)
+            settingsWidgetColorCustomizationLabel.pillRow(R.drawable.ic_palette_vector, view)
+            settingsManageAutomaticBackups.pillRow(CR.drawable.ic_settings_cog_vector, share)
+            settingsExportNotesLabel.pillRow(CR.drawable.ic_share_outline_vector, share)
+            settingsImportNotesLabel.pillRow(CR.drawable.ic_folder_open_vector, open)
+
+            settingsUseEnglish.rowIcon(CR.drawable.ic_settings_cog_vector, view)
+            settingsLanguageLabel.rowIcon(R.drawable.ic_text_fields_vector, view)
+            settingsFontSizeLabel.rowIcon(R.drawable.ic_tune_vector, view)
+            settingsShowWordCount.rowIcon(CR.drawable.ic_info_vector, view)
+            settingsClickableLinks.rowIcon(CR.drawable.ic_link_vector, open)
+            settingsMonospacedFont.rowIcon(R.drawable.ic_text_fields_vector, view)
+            settingsUseIncognitoMode.rowIcon(CR.drawable.ic_hide_vector, lock)
+            settingsEnableLineWrap.rowIcon(CR.drawable.ic_sort_vector, view)
+            settingsMoveUndoneChecklistItems.rowIcon(CR.drawable.ic_check_circle_vector, write)
+            settingsGravityLabel.rowIcon(CR.drawable.ic_sort_vector, view)
+            settingsCursorPlacement.rowIcon(CR.drawable.ic_edit_vector, write)
+            settingsShowKeyboard.rowIcon(CR.drawable.ic_edit_vector, write)
+            settingsShowNotePicker.rowIcon(CR.drawable.ic_folder_open_vector, open)
+            settingsAutosaveNotes.rowIcon(CR.drawable.ic_save_vector, write)
+            settingsDisplaySuccess.rowIcon(CR.drawable.ic_check_vector, view)
+            settingsAppPasswordProtection.rowIcon(CR.drawable.ic_lock_vector, lock)
+            settingsNoteDeletionPasswordProtection.rowIcon(CR.drawable.ic_lock_outlined_vector, lock)
+            settingsEnableAutomaticBackups.rowIcon(CR.drawable.ic_clock_vector, share)
+
+            // the value a tap changes, in the accent
+            listOf(settingsLanguage, settingsFontSize, settingsGravity).forEach {
+                it.setTextColor(getProperPrimaryColor())
+            }
+        }
+    }
+
+    private fun TextView.rowIcon(iconRes: Int, slot: ThemeSlot) {
+        val size = (ROW_ICON_DP * resources.displayMetrics.density).toInt()
+        val icon = resources.getColoredDrawableWithColor(iconRes, themeColor(slot))
+        icon.setBounds(0, 0, size, size)
+        setCompoundDrawablesRelative(icon, null, null, null)
+        compoundDrawablePadding = (ROW_ICON_GAP_DP * resources.displayMetrics.density).toInt()
+    }
+
+    // An action row: its label becomes the pill (it hugs the label), and takes the row's tap so that the
+    // ripple stays inside it.
+    private fun TextView.pillRow(iconRes: Int, slot: ThemeSlot, main: Boolean = false) {
+        val density = resources.displayMetrics.density
+        rowIcon(iconRes, slot)
+        if (tag == null) {
+            tag = true
+            text = "$text  ›"
+            val h = (PILL_PAD_H_DP * density).toInt()
+            val v = (PILL_PAD_V_DP * density).toInt()
+            setPadding(h, v, h, v)
+            val holder = parent as View
+            val rowPad = (PILL_ROW_PAD_DP * density).toInt()
+            holder.setPaddingRelative(holder.paddingStart, rowPad, holder.paddingEnd, rowPad)
+            holder.background = null
+            setOnClickListener { holder.performClick() }
+        }
+        setTextColor(uiColor(UiRole.BUTTON_TEXT))
+        setTypeface(null, if (main) Typeface.BOLD else Typeface.NORMAL)
+        background = pillDrawable(uiColor(UiRole.BUTTON_FRAME), uiColor(UiRole.BUTTON_GROUND), main)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -158,12 +247,6 @@ class SettingsActivity : SimpleActivity() {
     private fun setupShiroikumaUi() {
         binding.settingsShiroikumaUiHolder.setOnClickListener {
             startActivity(Intent(this, ThemeActivity::class.java))
-        }
-    }
-
-    private fun setupCustomizeColors() {
-        binding.settingsColorCustomizationHolder.setOnClickListener {
-            startCustomizationActivity()
         }
     }
 

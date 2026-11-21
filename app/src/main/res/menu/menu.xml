@@ -88,6 +88,11 @@
         android:title="@string/delete_note"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/ui_settings"
+        android:icon="@drawable/ic_palette_vector"
+        android:title="@string/shiroikuma_ui_category"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/settings"
         android:icon="@drawable/ic_settings_cog_vector"
         android:title="@string/settings"
@@ -101,9 +106,4 @@
         android:id="@+id/more_apps_from_us"
         android:title="@string/more_fossify_apps"
         app:showAsAction="never" />
-    <item
-        android:id="@+id/settings_shortcut"
-        android:title="@string/settings"
-        app:actionLayout="@layout/menu_settings_shortcut"
-        app:showAsAction="always" />
 </menu>

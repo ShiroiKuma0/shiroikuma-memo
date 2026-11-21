@@ -1,33 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Toggle row: title (with an optional description line) on the left, a switch on the right. The whole
-     row is clickable; the switch itself is non-interactive so taps anywhere on the row flip it. -->
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<!-- Toggle row: title (and, when it has one, its explanation beneath in the settings-note dim gold,
+     with a thin dim-gold rule down the row's left edge) on the left, a switch on the right. The whole
+     row is clickable; the switch itself is non-interactive so taps anywhere on the row flip it.
+     No minimum height: the row is as tall as its text (black-yellow theme, minimal row padding). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/theme_switch_holder"
-    style="@style/SettingsHolderTextViewOneLinerStyle"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="0dp"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/settings_label_start_margin"
+    android:paddingEnd="@dimen/settings_label_start_margin">
 
-    <org.fossify.commons.views.MyTextView
-        android:id="@+id/theme_switch_label"
-        style="@style/SettingsTextLabelStyle"
+    <View
+        android:id="@+id/theme_switch_rule"
+        android:layout_width="2dp"
+        android:layout_height="match_parent"
+        android:layout_marginEnd="10dp" />
+
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/theme_switch"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <org.fossify.commons.views.MyTextView
+            android:id="@+id/theme_switch_label"
+            style="@style/SettingsTextLabelStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/theme_switch_desc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="2dp"
+            android:textSize="13sp" />
+    </LinearLayout>
 
     <org.fossify.commons.views.MyMaterialSwitch
         android:id="@+id/theme_switch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/normal_margin"
-        android:layout_marginEnd="14dp"
         android:clickable="false"
         android:focusable="false"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:minHeight="0dp" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>

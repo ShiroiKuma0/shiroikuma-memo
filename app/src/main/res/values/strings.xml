@@ -18,9 +18,6 @@
     <string name="theme_group_sub_header">Sub-pages</string>
     <string name="theme_menu_icon">Menu icons</string>
     <string name="theme_menu_text">Menu text</string>
-    <string name="theme_settings_button">設定 characters</string>
-    <string name="settings_shortcut_left">設</string>
-    <string name="settings_shortcut_right">定</string>
     <string name="theme_header_title">Title</string>
     <string name="theme_header_arrow">Back arrow</string>
     <string name="theme_note_text">Note text</string>
@@ -106,7 +103,7 @@
     <string name="automation_data_importing">Restoring notes and settings…</string>
     <string name="all_files_access">All-files access</string>
     <string name="all_files_access_granted">Granted</string>
-    <string name="all_files_access_needed">Not granted — tap to allow writing to any folder</string>
+    <string name="all_files_access_needed">Not granted — tap to allow writing to any directory</string>
     <string name="widget_config">Thank you for using Fossify Notes.\nFor more apps from Fossify, please visit fossify.org.</string>
     <string name="cannot_share_empty_text">Cannot share empty text</string>
     <string name="new_note">Add a new note</string>
@@ -198,4 +195,42 @@
         Haven't found some strings? There's more at
         https://github.com/FossifyOrg/Commons/tree/master/commons/src/main/res
     -->
+    <!-- 白い熊 メモ UI page: the black-yellow look (+018) -->
+    <string name="app_settings_link">App settings</string>
+    <string name="app_settings_link_desc">Autosave, text size and alignment, backups, password protection.</string>
+    <string name="theme_section_menus">Menus</string>
+    <string name="theme_section_buttons">Buttons</string>
+    <string name="theme_section_lists">Lists</string>
+    <string name="theme_group_locked">Locked notes</string>
+    <string name="theme_group_note_picker">Open-note picker</string>
+    <string name="theme_settings_note">Explanations on this page</string>
+    <string name="theme_status_warning">Warning line</string>
+    <string name="theme_search_highlight">Search match</string>
+    <string name="theme_checklist_handle">Drag handle</string>
+    <string name="theme_checklist_group">“Checked items” heading</string>
+    <string name="theme_tab_indicator">Tab underline</string>
+    <string name="theme_locked_note">Lock and its line on a locked note</string>
+    <string name="theme_lock_closed">Unlock dialog: still locked</string>
+    <string name="theme_lock_open">Unlock dialog: unlocked</string>
+    <string name="theme_picker_title">Note title</string>
+    <string name="theme_picker_text">Note text</string>
+    <string name="theme_picker_frame">Card frame</string>
+    <string name="menu_icon_open">Icon: open, load, import</string>
+    <string name="menu_icon_write">Icon: write, create, rename</string>
+    <string name="menu_icon_share">Icon: share, export, print</string>
+    <string name="menu_icon_view">Icon: view, settings</string>
+    <string name="menu_icon_lock">Icon: lock, unlock</string>
+    <string name="menu_warning">Delete: icon, label and frame</string>
+    <string name="menu_icon_note">The same colours mark the rows of this page and of Settings.</string>
+    <string name="system_bar_role_note">The status and navigation bars are drawn by the system; a change shows when the screen is opened again.</string>
+    <string name="eim_open">Export / Import…</string>
+    <string name="automation_section">Automation</string>
+    <string name="all_files_access_desc">Lets an automation export write to any directory, not only Download and Documents.</string>
+    <string name="maintenance_section">Maintenance</string>
+    <string name="reset_section_order">Reset section order</string>
+    <string name="reset_section_order_desc">Puts the sections of this page back in their original order and folds them all.</string>
+    <string name="reset_all_colours">Reset all colours</string>
+    <string name="reset_all_colours_desc">Every colour on this page goes back to its default. Fonts are kept.</string>
+    <string name="reset_all_colours_confirm">Reset every colour to its default?</string>
+    <string name="reset_action">Reset</string>
 </resources>

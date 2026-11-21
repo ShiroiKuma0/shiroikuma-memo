@@ -29,7 +29,8 @@ class DeleteNoteDialog(val activity: SimpleActivity, val note: Note, val callbac
             .setPositiveButton(org.fossify.commons.R.string.delete) { dialog, which -> dialogConfirmed(binding.deleteNoteCheckbox.isChecked) }
             .setNegativeButton(org.fossify.commons.R.string.cancel, null)
             .apply {
-                activity.setupDialogStuff(binding.root, this)
+                // it deletes: the confirming pill is red
+                activity.setupDialogStuff(binding.root, this, destructiveButton = AlertDialog.BUTTON_POSITIVE)
             }
     }
 

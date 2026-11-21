@@ -13,7 +13,9 @@ import org.fossify.notes.activities.MainActivity
 import org.fossify.notes.extensions.ThemeSlot
 import org.fossify.notes.extensions.applyThemeFontIfSet
 import org.fossify.notes.extensions.migratePureYellowIfNeeded
+import org.fossify.notes.extensions.migrateSlotsToRoles
 import org.fossify.notes.extensions.seedBlackYellowThemeIfNeeded
+import org.fossify.notes.extensions.seedFamilyLook
 import org.fossify.notes.extensions.themeColor
 
 class App : FossifyApp() {
@@ -25,6 +27,11 @@ class App : FossifyApp() {
         seedBlackYellowThemeIfNeeded()
         // Rewrite any persisted old material-yellow color to the pure yellow, once.
         migratePureYellowIfNeeded()
+        // Colours set on slots that became commons roles (sk19) move into the roles' keys.
+        migrateSlotsToRoles()
+        // Dialogs get their accent frame, and the family's look is switched on: pill buttons, the
+        // outlined switch, the outlined floating button.
+        seedFamilyLook()
         // Theme every sub-page's top bar (the "Settings" title + back arrow, and the same headers on
         // Theme / About / Customization / …) from the HEADER_TITLE / HEADER_ARROW slots, so it
         // propagates even to commons-owned screens we don't edit.

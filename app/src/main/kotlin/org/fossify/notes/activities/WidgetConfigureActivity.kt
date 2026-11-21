@@ -13,6 +13,9 @@ import android.widget.RemoteViews
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import org.fossify.commons.dialogs.ColorPickerDialog
+import org.fossify.commons.extensions.pillDrawable
+import org.fossify.commons.helpers.UiRole
+import org.fossify.commons.helpers.uiColor
 import org.fossify.commons.dialogs.RadioGroupDialog
 import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.IS_CUSTOMIZING_COLORS
@@ -30,6 +33,8 @@ import org.fossify.notes.models.Note
 import org.fossify.notes.models.NoteType
 import org.fossify.notes.models.Task
 import org.fossify.notes.models.Widget
+
+private const val SEEKBAR_BAND_ALPHA = 0.8f
 
 class WidgetConfigureActivity : SimpleActivity() {
     private var mBgAlpha = 0f
@@ -63,6 +68,22 @@ class WidgetConfigureActivity : SimpleActivity() {
         binding.configBgColor.setOnClickListener { pickBackgroundColor() }
         binding.configTextColor.setOnClickListener { pickTextColor() }
         binding.notesPickerValue.setOnClickListener { showNoteSelector() }
+        // Both actions of this screen are outlined pills: OK the main one, the note picker a regular one.
+        binding.configSave.apply {
+            backgroundTintList = null
+            background = pillDrawable(uiColor(UiRole.BUTTON_FRAME), uiColor(UiRole.BUTTON_GROUND), main = true)
+            setTextColor(uiColor(UiRole.BUTTON_TEXT))
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }
+        binding.notesPickerValue.apply {
+            background = pillDrawable(uiColor(UiRole.BUTTON_FRAME), uiColor(UiRole.BUTTON_GROUND), main = false)
+            setTextColor(uiColor(UiRole.BUTTON_TEXT))
+        }
+        // the band behind the transparency slider: the background role, see-through, rounded
+        binding.configBgSeekbarHolder.background = android.graphics.drawable.GradientDrawable().apply {
+            cornerRadius = resources.getDimension(org.fossify.commons.R.dimen.normal_margin)
+            setColor(getProperBackgroundColor().adjustAlpha(SEEKBAR_BAND_ALPHA))
+        }
 
         val primaryColor = getProperPrimaryColor()
         binding.configBgSeekbar.setColors(mTextColor, primaryColor, primaryColor)
@@ -88,10 +109,6 @@ class WidgetConfigureActivity : SimpleActivity() {
             mBgColor = extras?.getInt(CUSTOMIZED_WIDGET_BG_COLOR) ?: config.widgetBgColor
             mTextColor = extras?.getInt(CUSTOMIZED_WIDGET_TEXT_COLOR) ?: config.widgetTextColor
             mShowTitle = extras?.getBoolean(CUSTOMIZED_WIDGET_SHOW_TITLE) == true
-        }
-
-        if (mTextColor == resources.getColor(org.fossify.commons.R.color.default_widget_text_color) && isDynamicTheme()) {
-            mTextColor = resources.getColor(org.fossify.commons.R.color.you_primary_color, theme)
         }
 
         mBgAlpha = Color.alpha(mBgColor) / 255.toFloat()
@@ -248,7 +265,6 @@ class WidgetConfigureActivity : SimpleActivity() {
         binding.checklistNoteView.setBackgroundColor(mBgColor)
         binding.textNoteViewTitle.setBackgroundColor(mBgColor)
         binding.configBgColor.setFillWithStroke(mBgColor, mBgColor)
-        binding.configSave.backgroundTintList = ColorStateList.valueOf(getProperPrimaryColor())
     }
 
     private fun updateTextColor() {
@@ -256,7 +272,6 @@ class WidgetConfigureActivity : SimpleActivity() {
         binding.textNoteViewTitle.setTextColor(mTextColor)
         (binding.checklistNoteView.adapter as? TasksAdapter)?.updateTextColor(mTextColor)
         binding.configTextColor.setFillWithStroke(mTextColor, mTextColor)
-        binding.configSave.setTextColor(getProperPrimaryColor().getContrastColor())
     }
 
     private fun pickBackgroundColor() {
