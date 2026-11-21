@@ -6,25 +6,33 @@
 
 **Fossify Notes in black and pure yellow — themed down to every single element.**
 
-A fork of [Fossify Notes](https://github.com/FossifyOrg/Notes) with **major additions**: a granular per-element theming page (every color, every font), one-ZIP Export/Import of settings **and notes**, headless backup and a clean-phone data restore driven by sister apps, per-element custom fonts, a 設定 quick-access double-button, and a black/pure-yellow (`#FFFF00`) default look.
+A fork of [Fossify Notes](https://github.com/FossifyOrg/Notes) with **major additions**: the black-yellow look on every surface — outlined pills, pill menus with icons coloured by what a row does, outlined switches — with **every colour a settable role**, a folding UI page with a draggable index, one-ZIP Export/Import of settings **and notes**, headless backup and a clean-phone data restore driven by sister apps, and per-element custom fonts.
 
 Installs **side-by-side** with Fossify Notes (app id `shiroikuma.memo`).
 
-**📥 Latest release: [`1.7.0+16`](https://github.com/ShiroiKuma0/shiroikuma-memo/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-memo/releases)
+**📥 Latest release: [`1.7.0+019`](https://github.com/ShiroiKuma0/shiroikuma-memo/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-memo/releases)
 
 </div>
 
 ---
 
-## 🎨 白い熊 メモ UI — theme every element
+## 🎨 白い熊 メモ UI — every colour is yours
 
-A dedicated **UI page** (long-tap the top-right hamburger, or tap 設 in the top bar) with granular, per-element theming: background, primary/accent, text and secondary text, main-screen menu icons and text, the 設定 button characters, sub-page titles and back arrows, note text, the counter, checklist items (text / done / checkbox), and tab titles. Every slot inherits sensibly from the foundation colors and can be overridden individually — with an alpha-capable color picker and recent colors. The page itself is styled in the kxkb convention: bold text-wide-underlined headings, hairline section separators, and a clean indent ladder.
+A dedicated **UI page** (the 白い熊 メモ UI row of the ⋮ menu, a long-press on ⋮, or the pill in Settings) where **every colour the app draws is a role you can set** — nothing is pinned in XML. The roles sit in the section of their item: Foundation, Text, Text fields and pickers, Buttons, Dialogs, Switches, Check boxes and radio buttons, Menus, Lists, Top bar, Bars, Notes, Toasts. A button's text, its frame and its ground are three roles; so are a switch's outline and dot, on and off. Each has an alpha-capable picker with a *Default* button, and *Reset all colours* sits in Maintenance.
+
+The page is a **folding accordion**: every section starts folded, a tap on its heading opens it, and a wrapping grid of small chips on top jumps to any section. **Long-press a chip and drag** — the chips reorder live under the finger and the sections follow. Order and fold state are remembered and travel in the export.
+
+---
+
+## 💊 Pills, switches and menus that show what can be pressed
+
+Every action is an **outlined pill**, never a filled slab: the main action of a block has a thick frame and bold text, every other a thin one, and one that deletes turns red. Switches are an outlined pill with a solid dot. The ⋮ menu is a column of **full-width pills, each with an icon coloured by what the row does** — open green, write blue, share orange, lock magenta, delete red — and a › where a row opens something. The same colours mark the rows of the UI page and of Settings, so a menu is read by colour before it is read by word.
 
 ---
 
 ## 📦 Export / Import — everything, in one ZIP
 
-The first section of the UI page exports and imports the whole app by category — **UI colours**, **Fonts** (including the imported font files themselves), **App settings**, and **the notes themselves** (every note's text, including the content of file-backed ones, plus its type and lock state). It is one archive, never a settings file next to a data file: `shiroikuma-memo_<yyyy-MM-dd_HH-mm-ss>.zip`, the naming every 白い熊 app shares so a single backup folder sorts and reads uniformly. Set an export directory once and exports become one tap; the page shows the timestamp of the latest export in that directory. Import merges (never wipes) — notes are matched by title, so a restore updates them instead of duplicating them — rejects foreign files, and offers an in-place app restart when done.
+The first section of the UI page exports and imports the whole app by category — **UI colours**, **Fonts** (including the imported font files themselves), **App settings**, and **the notes themselves** (every note's text, including the content of file-backed ones, plus its type and lock state). It is one archive, never a settings file next to a data file: `shiroikuma-memo_<yyyy-MM-dd_HH-mm-ss>.zip`, the naming every 白い熊 app shares so a single backup directory sorts and reads uniformly. Set an export directory once and exports become one tap; the page shows the timestamp of the latest export in that directory. Import merges (never wipes) — notes are matched by title, so a restore updates them instead of duplicating them — rejects foreign files, and offers an in-place app restart when done.
 
 ---
 
@@ -40,25 +48,19 @@ The gate ships **open** — the switch is on, the token is optional — because 
 
 ## 🔤 Per-element fonts
 
-Import your own `.ttf`/`.otf` fonts and assign **family, weight, and size per element** — the note text, checklist items, tab titles, headers, and the 設定 button each get their own typography, with a live sample line while you tune it.
+Import your own `.ttf`/`.otf` fonts and assign **family, weight, and size per element** — the note text, checklist items, tab titles and headers each get their own typography, with a live sample line while you tune it.
 
 ---
 
 ## 🖤💛 Black & pure yellow
 
-The default look is solid black `#000000` with **pure yellow `#FFFF00`** — the launcher icon included. Bordered black/yellow dialogs, pill-shaped dialog buttons, and a matching Exporting/Importing flash keep the look consistent everywhere.
-
----
-
-## 設定 Quick access
-
-A 設定 double-button sits in the main top bar: **設** opens the 白い熊 メモ UI page, **定** the regular settings. A **long-tap on the hamburger** opens the UI page too.
+The default look is solid black `#000000` with **pure yellow `#FFFF00`** — the launcher icon included. The two colours are written once, as the defaults of the role table; framed dialogs, pill buttons and a matching Exporting/Importing flash keep the look consistent everywhere.
 
 ---
 
 ## 🔓 No nags
 
-Built against a patched Fossify Commons (`6.1.6-sk19`) with the "fake version" / sideloading checks removed — no modded-app dialog, and "Customize colors" works even though the app id isn't `org.fossify.*`.
+Built against a patched Fossify Commons (`6.1.6-sk19`) with the "fake version" / sideloading checks removed — no modded-app dialog even though the app id isn't `org.fossify.*`. The same Commons carries the family's look and its colour roles.
 
 ## Built on Fossify Notes
 
@@ -73,4 +75,4 @@ cd shiroikuma-memo
 ./gradlew buildFoss   # signed foss release → ~/tmp/shiroikuma-memo_<version>_arm64-v8a.apk
 ```
 
-Versioning: `<upstream version>+<fork build>` with the build counter zero-padded to three digits (e.g. `1.7.0+017`), so builds sort in order; versionCode `upstream*10000+build`.
+Versioning: `<upstream version>+<fork build>` with the build counter zero-padded to three digits (e.g. `1.7.0+019`), so builds sort in order; versionCode `upstream*10000+build`.

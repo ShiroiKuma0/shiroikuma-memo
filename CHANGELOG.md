@@ -4,6 +4,52 @@ This file carries **both** histories: 白い熊 メモ's own fork releases first
 Fossify Notes changelog below, untouched. Earlier fork releases are on the
 [releases page](https://github.com/ShiroiKuma0/shiroikuma-memo/releases).
 
+## 白い熊 メモ 1.7.0+019 — 2026-11-21
+Built on Fossify Notes 1.7.0 and shiroikuma-commons 6.1.6-sk19 (was 6.1.6-sk1).
+
+### Added
+- **Every colour is a settable role, and none is written in XML.** The UI page shows the app's own
+  roles and the roles of everything Commons draws — text, text fields and pickers, buttons, dialogs,
+  switches, check boxes and radio buttons, menus, lists, bars, toasts — each in the section of its
+  item, each with a *Default* button in its picker.
+- New roles of this app: explanations on the UI page (dim gold), the warning line, the search match,
+  the checklist's drag handle and its "checked items" heading, the tab underline, the lock on a
+  locked note, the locked and unlocked marks of the unlock dialog, the title, text and frame of the
+  open-note cards, and six menu icon roles (open, write, share, view, lock, delete).
+- **The UI page is a folding accordion with a draggable chip index.** Every section is folded by
+  default; a chip jumps to its section; a long-press drags a chip, the chips reorder live and the
+  sections follow. Order and fold state are stored and exported with the colours.
+- An **App settings** pill on top of the UI page, and a **Maintenance** section with *Reset section
+  order* and *Reset all colours*.
+- **Pill menus**: every row of the ⋮ menu is a full-width outlined pill with an icon coloured by
+  what the row does, a › when it opens something, and red throughout when it deletes. Every row has
+  an icon now.
+- A **白い熊 メモ UI** row in the ⋮ menu.
+- Icons on every row of the Settings screen and of the UI page, in the menu icon colours.
+
+### Changed
+- **Buttons are outlined pills everywhere**: dialog buttons, the Export / Import panels (Export is
+  the main pill), "Show content" on a locked note, the empty checklist's action, the add-line button
+  of the new-items dialog, the widget screen's OK and note picker, Regenerate.
+- **Switches are the outlined pill with a solid dot**, and the floating buttons are outlined.
+- Deleting a note confirms with a red pill.
+- Rows that open something on the UI page and in Settings are pills that hug their label;
+  explanations are dim gold with a thin rule down the left; rows are only as tall as their content.
+- Automation has a section of its own on the UI page; All-files access is a pill with its state
+  beneath.
+- The open-note cards are framed instead of filled; the font picker's rows have icons and a line
+  before *Add font…*.
+- A done checklist item is drawn at full opacity in its own role instead of being faded.
+- Sub-page titles and back arrows are the top-bar roles (yellow by default; the title was white).
+- Launcher shortcut icons are built in code: a disc in the accent under the glyph.
+- The export covers the commons colour roles and the UI page's section order and fold state.
+- The build counter is zero-padded to three digits (`1.7.0+019`), so builds sort in order.
+
+### Removed
+- The 設定 double-button in the top bar, with its colour and font role.
+- **Customize colors** in Settings, along with the stock theme system (system, white and
+  black-and-white themes, launcher icon colour switching) that Commons sk18 removed.
+
 ## 白い熊 メモ 1.7.0+16 — 2026-09-04
 Built on Fossify Notes 1.7.0.
 
