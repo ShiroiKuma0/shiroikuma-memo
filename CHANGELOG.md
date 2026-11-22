@@ -4,6 +4,26 @@ This file carries **both** histories: 白い熊 メモ's own fork releases first
 Fossify Notes changelog below, untouched. Earlier fork releases are on the
 [releases page](https://github.com/ShiroiKuma0/shiroikuma-memo/releases).
 
+## 白い熊 メモ 1.7.0+021 — 2026-11-22
+Built on Fossify Notes 1.7.0 plus upstream `main` up to `4260b1cb` (48 commits past the previous
+base), and shiroikuma-commons 7.1.3-sk1 (unchanged).
+
+### Changed
+- **Rebased onto current upstream `main`.** Upstream has cut no release after 1.7.0, so the version
+  stays `1.7.0` and the fork counter simply carries on (`+021`, versionCode 130021).
+- Upstream's own migration to Commons 7.1.0 → 7.1.3 now sits under the fork; it matches what `+020`
+  had already done here (`is_google_play_build` in place of `hide_google_relations`), so the app
+  behaves the same.
+- Build tooling from upstream: Android Gradle Plugin 9.4.1 (was 9.2.1), Gradle wrapper 9.9.1,
+  KSP 2.3.12, the Kotlin serialization plugin, Room 2.8.5 (was 2.8.4), ConstraintLayout 2.2.2 (was
+  2.2.1), refreshed lint baselines.
+- Updated translations from upstream: Arabic, Breton, Chinese (Simplified), Hebrew, Portuguese,
+  Slovenian, Tamil.
+
+### Removed
+- The `core` product flavour — upstream dropped it with the Commons 7.1.0 migration. The fork ships
+  `foss`, as before.
+
 ## 白い熊 メモ 1.7.0+020 — 2026-11-22
 Built on Fossify Notes 1.7.0 and shiroikuma-commons 7.1.3-sk1 (was 6.1.6-sk19).
 

@@ -10,7 +10,7 @@ A fork of [Fossify Notes](https://github.com/FossifyOrg/Notes) with **major addi
 
 Installs **side-by-side** with Fossify Notes (app id `shiroikuma.memo`).
 
-**📥 Latest release: [`1.7.0+020`](https://github.com/ShiroiKuma0/shiroikuma-memo/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-memo/releases)
+**📥 Latest release: [`1.7.0+021`](https://github.com/ShiroiKuma0/shiroikuma-memo/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-memo/releases)
 
 </div>
 
