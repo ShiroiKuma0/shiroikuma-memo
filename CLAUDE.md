@@ -104,7 +104,8 @@ When the user says a new upstream version is out, follow the **upstream-new-vers
 ./gradlew lintFossRelease        # Run Android lint checks
 ```
 
-**Product flavors:** `core` (F-Droid), `foss`, `gplay` (Google Play). We ship `foss`.
+**Product flavors:** `foss`, `gplay` (Google Play). We ship `foss`. (Upstream dropped the `core`
+flavor with the Commons 7.1.0 migration.)
 There are no unit or instrumented tests in this repository.
 
 ## Code Style
