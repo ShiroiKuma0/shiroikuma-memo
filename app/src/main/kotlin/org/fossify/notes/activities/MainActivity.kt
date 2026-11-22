@@ -285,7 +285,7 @@ class MainActivity : SimpleActivity() {
             findItem(R.id.unlock_note).isVisible =
                 mNotes.isNotEmpty() && (::mCurrentNote.isInitialized && mCurrentNote.isLocked())
             findItem(R.id.more_apps_from_us).isVisible =
-                !resources.getBoolean(org.fossify.commons.R.bool.hide_google_relations)
+                resources.getBoolean(org.fossify.commons.R.bool.is_google_play_build)
             findItem(R.id.delete_note).isVisible = !isDefaultEmptyNote || mNotes.size > 1
 
             saveNoteButton = findItem(R.id.save_note)
@@ -840,7 +840,7 @@ class MainActivity : SimpleActivity() {
             )
         )
 
-        if (!resources.getBoolean(org.fossify.commons.R.bool.hide_google_relations)) {
+        if (resources.getBoolean(org.fossify.commons.R.bool.is_google_play_build)) {
             faqItems.add(
                 FAQItem(
                     title = org.fossify.commons.R.string.faq_2_title_commons,
