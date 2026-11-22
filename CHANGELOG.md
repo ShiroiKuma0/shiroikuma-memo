@@ -4,6 +4,23 @@ This file carries **both** histories: 白い熊 メモ's own fork releases first
 Fossify Notes changelog below, untouched. Earlier fork releases are on the
 [releases page](https://github.com/ShiroiKuma0/shiroikuma-memo/releases).
 
+## 白い熊 メモ 1.7.0+020 — 2026-11-22
+Built on Fossify Notes 1.7.0 and shiroikuma-commons 7.1.3-sk1 (was 6.1.6-sk19).
+
+### Changed
+- **Moved to Commons 7.** The app now builds against the patched Commons `7.1.3-sk1` — every fork
+  patch of the 6.1.6 line (the removed "fake version" checks, the colour roles, the pills, the
+  outlined switches) replayed onto upstream Commons 7.1.3.
+- Commons 7 replaced the bool `hide_google_relations` with `is_google_play_build` (inverted
+  meaning); the "More apps from us" menu item and the two Commons FAQ entries read the new one and
+  stay hidden in this build, as before. The foss and gplay flavours define it (false / true).
+
+### Removed
+- The unused `pretend_thank_you_installed` bool — upstream dropped the "thank you" feature locks in
+  Commons 7.
+
+Commons 7's timed donation / rating prompt never appears: the patched Commons makes it a no-op.
+
 ## 白い熊 メモ 1.7.0+019 — 2026-11-21
 Built on Fossify Notes 1.7.0 and shiroikuma-commons 6.1.6-sk19 (was 6.1.6-sk1).
 

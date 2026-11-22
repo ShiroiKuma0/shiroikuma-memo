@@ -10,7 +10,7 @@ A fork of [Fossify Notes](https://github.com/FossifyOrg/Notes) with **major addi
 
 Installs **side-by-side** with Fossify Notes (app id `shiroikuma.memo`).
 
-**📥 Latest release: [`1.7.0+019`](https://github.com/ShiroiKuma0/shiroikuma-memo/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-memo/releases)
+**📥 Latest release: [`1.7.0+020`](https://github.com/ShiroiKuma0/shiroikuma-memo/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-memo/releases)
 
 </div>
 
@@ -60,7 +60,7 @@ The default look is solid black `#000000` with **pure yellow `#FFFF00`** — the
 
 ## 🔓 No nags
 
-Built against a patched Fossify Commons (`6.1.6-sk19`) with the "fake version" / sideloading checks removed — no modded-app dialog even though the app id isn't `org.fossify.*`. The same Commons carries the family's look and its colour roles.
+Built against a patched Fossify Commons (`7.1.3-sk1`) with the "fake version" / sideloading checks removed — no modded-app dialog even though the app id isn't `org.fossify.*`. The same Commons carries the family's look and its colour roles.
 
 ## Built on Fossify Notes
 
@@ -71,8 +71,8 @@ A fork of [Fossify Notes](https://github.com/FossifyOrg/Notes) (app id `shiroiku
 ```bash
 git clone git@github.com:ShiroiKuma0/shiroikuma-memo.git
 cd shiroikuma-memo
-# needs JDK 17+ and the Android SDK; publish the patched commons 6.1.6-sk19 to mavenLocal first
+# needs JDK 17+ and the Android SDK; publish the patched commons 7.1.3-sk1 to mavenLocal first
 ./gradlew buildFoss   # signed foss release → ~/tmp/shiroikuma-memo_<version>_arm64-v8a.apk
 ```
 
-Versioning: `<upstream version>+<fork build>` with the build counter zero-padded to three digits (e.g. `1.7.0+019`), so builds sort in order; versionCode `upstream*10000+build`.
+Versioning: `<upstream version>+<fork build>` with the build counter zero-padded to three digits (e.g. `1.7.0+020`), so builds sort in order; versionCode `upstream*10000+build`.
